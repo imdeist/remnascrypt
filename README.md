@@ -1,6 +1,11 @@
 # remnascrypt
 
-Скрипты для быстрой установки SelfSNI, выпуска сертификатов Let's Encrypt и запуска `remnawave/node` на Debian/Ubuntu.
+> Быстрый скрипт для установки SelfSNI, выпуска сертификатов Let's Encrypt и запуска `remnawave/node` на Debian/Ubuntu.
+
+[Официальная документация Remnawave](https://docs.rw/)  
+[Репозиторий remnawave/node](https://github.com/remnawave/node)
+
+---
 
 ## Описание
 
@@ -18,17 +23,25 @@
 - создать `docker-compose.yml` для `remnawave/node`
 - запустить контейнер ноды
 
+---
+
 ## Перед установкой
 
-Перед запуском скрипта необходимо сначала создать новую ноду в панели Remnawave. В официальной инструкции по установке Remnawave Node сказано, что нода сначала добавляется в панели через раздел `Nodes` → `Management`, где нужно заполнить форму и обратить внимание на поле `Node Port`. [web:1]
+Перед запуском скрипта необходимо сначала создать новую ноду в панели Remnawave.
 
-При создании ноды в панели укажите:
+В панели откройте:
+
+`Nodes` → `Management` → `+`
+
+При создании ноды укажите:
 
 - `IP/Domain` — IP-адрес сервера или домен сервера
 - `Node Port` — порт ноды, который вы позже укажете при запуске скрипта
 - `SECRET_KEY` — скопируйте из панели, он потребуется скрипту для запуска ноды
 
-После создания ноды сохраните или скопируйте `SECRET_KEY`. Для Remnawave Node сейчас используются два основных параметра: `NODE_PORT` и `SECRET_KEY`. [web:8][web:127][web:128]
+После создания ноды сохраните `SECRET_KEY`.
+
+---
 
 ## Требования
 
@@ -42,11 +55,15 @@
 - запуск выполняется от `root`
 - сервер имеет доступ в интернет
 
+---
+
 ## Быстрый запуск
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh)
 ```
+
+---
 
 ## Аргументы
 
@@ -79,6 +96,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 
 Текущая версия скрипта выпускает сертификат через `http-01`, поэтому для установки нужен свободный порт `80`.
 
+---
+
 ## Что спросит скрипт
 
 Во время выполнения скрипт запросит:
@@ -87,7 +106,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 2. Порт для ноды RemnaNode
 3. `SECRET_KEY` для ноды
 
-Порт ноды должен совпадать с тем, который был указан при создании ноды в панели Remnawave. `SECRET_KEY` также нужно брать из панели ноды. [web:1][web:8]
+Порт ноды должен совпадать с тем, который был указан при создании ноды в панели Remnawave.
+
+---
 
 ## Что устанавливается
 
@@ -103,6 +124,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 - `docker`
 - `docker-compose-plugin`
 
+---
+
 ## Что создаёт скрипт
 
 После успешного выполнения будут созданы и использованы следующие пути:
@@ -115,6 +138,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 /etc/letsencrypt/live/ВАШ_ДОМЕН/privkey.pem
 /var/www/html
 ```
+
+---
 
 ## Пример `docker-compose.yml`
 
@@ -141,6 +166,8 @@ services:
       - '/etc/letsencrypt:/etc/letsencrypt:ro'
 ```
 
+---
+
 ## Примеры запуска
 
 ### Стандартная установка
@@ -154,6 +181,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh) --selfsni-port 9443
 ```
+
+---
 
 ## Что делает скрипт по шагам
 
@@ -171,6 +200,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 12. Устанавливает Docker и Docker Compose plugin
 13. Создаёт `docker-compose.yml`
 14. Запускает контейнер `remnawave/node`
+
+---
 
 ## Результат после установки
 
@@ -191,6 +222,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 В качестве SNI укажите: example.com
 Docker compose: /opt/remnanode/docker-compose.yml
 ```
+
+---
 
 ## Проверка после установки
 
@@ -218,6 +251,8 @@ nginx -t
 ls -la /etc/letsencrypt/live/your-domain/
 ```
 
+---
+
 ## Возможные проблемы
 
 ### Домен не указывает на сервер
@@ -238,4 +273,4 @@ ls -la /etc/letsencrypt/live/your-domain/
 
 ### Нода не подключается к панели
 
-Проверьте, что при создании ноды в панели был указан тот же `Node Port`, который вы ввели в скрипте, и что `SECRET_KEY` был скопирован без изменений. В инструкции Remnawave Node отдельно указано, что поле `Node Port` используется для внутренних API-запросов от панели к ноде. [web:1]
+Проверьте, что при создании ноды в панели был указан тот же `Node Port`, который вы ввели в скрипте, и что `SECRET_KEY` был скопирован без изменений.
