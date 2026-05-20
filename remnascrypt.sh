@@ -186,7 +186,8 @@ server {
 }
 
 server {
-    listen 127.0.0.1:$SPORT ssl http2 proxy_protocol;
+    listen 127.0.0.1:$SPORT ssl;
+    http2 on;
     server_name $DOMAIN;
 
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
@@ -196,7 +197,6 @@ server {
     ssl_prefer_server_ciphers on;
     ssl_ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
 
-    real_ip_header proxy_protocol;
     set_real_ip_from 127.0.0.1;
 
     location / {
