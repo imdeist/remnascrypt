@@ -2,8 +2,11 @@
 set -euo pipefail
 
 SPORT=9000
-WITHOUT_80=0
 NODE_PORT_DEFAULT=2272
+WEBROOT_DIR="/var/www/remnascrypt"
+NGINX_SITE="/etc/nginx/sites-available/remnascrypt.conf"
+NGINX_SITE_LINK="/etc/nginx/sites-enabled/remnascrypt.conf"
+NGINX_DEFAULT_LINK="/etc/nginx/sites-enabled/default"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -17,12 +20,13 @@ while [[ $# -gt 0 ]]; do
             fi
             ;;
         --without-80)
-            WITHOUT_80=1
-            shift
+            echo "Ошибка: режим --without-80 в этом скрипте отключён."
+            echo "Причина: выпуск сертификата реализован через webroot и требует обычного HTTP-01 доступа по 80/tcp."
+            exit 1
             ;;
         *)
             echo "Неизвестный аргумент: $1"
-            echo "Использование: $0 [--selfsni-port <порт>] [--without-80]"
+            echo "Использование: $0 [--selfsni-port <порт>]"
             exit 1
             ;;
     esac
@@ -30,13 +34,11 @@ done
 
 if [[ "$EUID" -ne 0 ]]; then
     echo "Ошибка: скрипт необходимо запускать от root."
-    echo "Пример:"
-    echo "sudo bash $0"
     exit 1
 fi
 
 if ! grep -E -q "^(ID=debian|ID=ubuntu)" /etc/os-release; then
-    echo "Скрипт поддерживает только Debian или Ubuntu. Завершаю работу."
+    echo "Скрипт поддерживает только Debian или Ubuntu."
     exit 1
 fi
 
@@ -45,16 +47,9 @@ if ! [[ "$SPORT" =~ ^[0-9]+$ ]] || (( SPORT < 1 || SPORT > 65535 )); then
     exit 1
 fi
 
-if [[ $WITHOUT_80 -eq 1 ]]; then
-    echo "Ошибка: режим --without-80 в этом скрипте отключён."
-    echo "Причина: стандартный certbot не поддерживает challenge tls-alpn-01."
-    echo "Используйте обычный режим с открытым портом 80 или реализуйте DNS-01 отдельно."
-    exit 1
-fi
-
 read -r -p "Введите доменное имя: " DOMAIN
 if [[ -z "$DOMAIN" ]]; then
-    echo "Доменное имя не может быть пустым. Завершаю работу."
+    echo "Доменное имя не может быть пустым."
     exit 1
 fi
 
@@ -74,26 +69,24 @@ fi
 read -r -s -p "Введите SECRET_KEY для RemnaNode: " SECRET_KEY
 echo
 if [[ -z "$SECRET_KEY" ]]; then
-    echo "SECRET_KEY не может быть пустым. Завершаю работу."
+    echo "SECRET_KEY не может быть пустым."
     exit 1
 fi
 
 external_ip=$(curl -4 -s --max-time 5 https://api.ipify.org || true)
 if [[ -z "$external_ip" ]]; then
-    echo "Не удалось определить внешний IP сервера. Проверьте подключение к интернету."
+    echo "Не удалось определить внешний IP сервера."
     exit 1
 fi
 
 echo "Внешний IP сервера: $external_ip"
 
 apt update
-apt install -y curl nginx certbot python3-certbot-nginx git dnsutils ca-certificates gnupg lsb-release
+apt install -y curl nginx certbot git dnsutils ca-certificates gnupg lsb-release
 
 domain_ip=$(dig +short A "$DOMAIN" | tail -n1)
-
 if [[ -z "$domain_ip" ]]; then
     echo "Не удалось получить A-запись для домена $DOMAIN."
-    echo "Убедитесь, что домен существует и уже направлен на сервер."
     exit 1
 fi
 
@@ -106,48 +99,61 @@ fi
 
 echo "A-запись домена $DOMAIN соответствует внешнему IP сервера."
 
-if ss -tuln | grep -q ":443 "; then
-    echo "Порт 443 занят. Освободите его перед запуском скрипта."
+if ss -tuln | grep -q ":${SPORT} "; then
+    echo "Порт SelfSNI ${SPORT} уже занят. Укажите другой порт."
     exit 1
-else
-    echo "Порт 443 свободен."
-fi
-
-if ss -tuln | grep -q ":80 "; then
-    echo "Порт 80 занят. Для этого скрипта он должен быть свободен."
-    exit 1
-else
-    echo "Порт 80 свободен."
 fi
 
 if ss -tuln | grep -q ":${NODE_PORT} "; then
     echo "Порт ноды ${NODE_PORT} уже занят. Укажите другой порт."
     exit 1
-else
-    echo "Порт ноды ${NODE_PORT} свободен."
 fi
 
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+if ss -tuln | grep -q ":80 "; then
+    echo "Порт 80 занят — это нормально, если его использует nginx."
+else
+    echo "Порт 80 свободен."
+fi
 
-git clone https://github.com/learning-zone/website-templates.git "$TEMP_DIR"
+if ss -tuln | grep -q ":443 "; then
+    echo "Порт 443 занят. Освободите его перед запуском."
+    exit 1
+fi
 
-SITE_DIR=$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 -type d | shuf -n 1)
+mkdir -p "$WEBROOT_DIR"
+cat > "$WEBROOT_DIR/index.html" <<'EOF'
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OK</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f6f2;color:#28251d}
+    .box{padding:24px 28px;border:1px solid #d4d1ca;border-radius:16px;background:#f9f8f5;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+  </style>
+</head>
+<body>
+  <div class="box">remnascrypt webroot is ready</div>
+</body>
+</html>
+EOF
 
-mkdir -p /var/www/html
-rm -rf /var/www/html/*
-cp -r "$SITE_DIR"/* /var/www/html/
+rm -f "$NGINX_DEFAULT_LINK" 2>/dev/null || true
 
-rm -f /etc/nginx/sites-enabled/default
-rm -f /etc/nginx/sites-available/default
-
-cat > /etc/nginx/sites-enabled/bootstrap.conf <<EOF
+cat > "$NGINX_SITE" <<EOF
 server {
     listen 80;
+    listen [::]:80;
     server_name $DOMAIN;
 
-    root /var/www/html;
+    root $WEBROOT_DIR;
     index index.html;
+
+    location /.well-known/acme-challenge/ {
+        allow all;
+        try_files \$uri =404;
+    }
 
     location / {
         try_files \$uri \$uri/ =404;
@@ -155,22 +161,28 @@ server {
 }
 EOF
 
+ln -sf "$NGINX_SITE" "$NGINX_SITE_LINK"
+
 nginx -t
 systemctl restart nginx
 
-echo "Выпускаем сертификат через HTTP-01..."
-certbot --nginx -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive --redirect
+echo "Выпускаем сертификат через HTTP-01 webroot..."
+certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
 
-cat > /etc/nginx/sites-enabled/sni.conf <<EOF
+cat > "$NGINX_SITE" <<EOF
 server {
     listen 80;
+    listen [::]:80;
     server_name $DOMAIN;
 
-    if (\$host = $DOMAIN) {
-        return 301 https://\$host\$request_uri;
+    location /.well-known/acme-challenge/ {
+        root $WEBROOT_DIR;
+        allow all;
     }
 
-    return 404;
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
 }
 
 server {
@@ -184,23 +196,15 @@ server {
     ssl_prefer_server_ciphers on;
     ssl_ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
 
-    ssl_stapling on;
-    ssl_stapling_verify on;
-
-    resolver 8.8.8.8 8.8.4.4 valid=300s;
-    resolver_timeout 5s;
-
     real_ip_header proxy_protocol;
     set_real_ip_from 127.0.0.1;
 
     location / {
-        root /var/www/html;
+        root $WEBROOT_DIR;
         index index.html;
     }
 }
 EOF
-
-rm -f /etc/nginx/sites-enabled/bootstrap.conf
 
 nginx -t
 systemctl restart nginx
@@ -255,13 +259,10 @@ echo "========================================"
 echo "Домен: $DOMAIN"
 echo "SelfSNI порт: $SPORT"
 echo "Порт ноды: $NODE_PORT"
-echo
 echo "Сертификат: $CERT_PATH"
 echo "Ключ: $KEY_PATH"
-echo
-echo "В качестве Dest укажите: 127.0.0.1:$SPORT"
-echo "В качестве SNI укажите: $DOMAIN"
-echo
+echo "Dest: 127.0.0.1:$SPORT"
+echo "SNI: $DOMAIN"
 echo "Docker compose: /opt/remnanode/docker-compose.yml"
 echo "Контейнер remnanode запущен."
 echo "Проверка статуса: docker ps | grep remnanode"
