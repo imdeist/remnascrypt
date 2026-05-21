@@ -173,7 +173,7 @@ https://raw.githubusercontent.com/imdeist/remnascrypt/main/index.html
 /var/www/remnascrypt/index.html
 ```
 
-Это позволяет редактировать заглушку прямо в репозитории без изменения логики установочного скрипта.[web:36][web:39]
+Это позволяет редактировать заглушку прямо в репозитории без изменения логики установочного скрипта.
 
 ---
 
@@ -307,8 +307,6 @@ ls -la /etc/letsencrypt/live/your-domain/
 systemctl status certbot.timer
 ```
 
-> В Debian/Ubuntu пакет `certbot` обычно создаёт и активирует `systemd`-таймер для автоматического продления сертификатов.[web:34][web:31]
-
 ---
 
 ## Возможные проблемы
@@ -319,7 +317,7 @@ systemctl status certbot.timer
 
 ### Не удалось скачать `index.html`
 
-Скрипт загружает заглушку напрямую с `raw.githubusercontent.com`, поэтому сервер должен иметь доступ к GitHub, а файл должен существовать по указанному пути.[web:33][web:36]
+Скрипт загружает заглушку напрямую с `raw.githubusercontent.com`, поэтому сервер должен иметь доступ к GitHub, а файл должен существовать по указанному пути.
 
 ### Порт `443` занят
 
@@ -339,7 +337,7 @@ systemctl status certbot.timer
 
 ### Не работает `docker compose`
 
-На Debian и Ubuntu Compose v2 обычно ставится как plugin для команды `docker compose`, поэтому при его отсутствии скрипт устанавливает пакет `docker-compose-plugin`.[web:32]
+На Debian и Ubuntu Compose v2 обычно ставится как plugin для команды `docker compose`, поэтому при его отсутствии скрипт устанавливает пакет `docker-compose-plugin`.
 
 ### Nginx не принимает конфиг с `http2 on;`
 
