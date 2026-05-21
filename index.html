@@ -3,22 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Прополка картофеля — спокойный практический журнал</title>
-  <meta name="description" content="Неспешный одностраничный сайт со статьями о прополке картофеля: сроки, инструменты, ручной уход и аккуратная организация работы на участке." />
-  <meta property="og:title" content="Прополка картофеля — спокойный практический журнал" />
-  <meta property="og:description" content="Подборка спокойных и понятных материалов о прополке картофеля." />
-  <meta property="og:image" content="https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1200&q=80" />
+  <title>Картофельный угар — сайт с приколами про прополку</title>
+  <meta name="description" content="Большой одностраничный сайт с приколами, заметками, мини-историями и советами про прополку картофеля. Без картинок — только эмодзи, символы и встроенные декоративные элементы." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
     :root, [data-theme="light"] {
       --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
-      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
-      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
-      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
-      --text-2xl: clamp(2rem, 1.2rem + 2.5vw, 3.5rem);
+      --text-sm: clamp(0.875rem, 0.82rem + 0.3vw, 1rem);
+      --text-base: clamp(1rem, 0.96rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.45rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.1vw, 2.1rem);
+      --text-2xl: clamp(2.2rem, 1.6rem + 2vw, 3.8rem);
       --space-1: 0.25rem;
       --space-2: 0.5rem;
       --space-3: 0.75rem;
@@ -31,487 +28,564 @@
       --space-16: 4rem;
       --space-20: 5rem;
       --space-24: 6rem;
-      --radius-sm: 0.375rem;
-      --radius-md: 0.75rem;
-      --radius-lg: 1rem;
-      --radius-xl: 1.5rem;
-      --radius-full: 9999px;
-      --color-bg: #f5f1ea;
-      --color-surface: #fbf8f3;
-      --color-surface-2: #f1ece5;
-      --color-surface-offset: #ebe4da;
-      --color-border: #d7cec3;
-      --color-divider: #e2dacf;
-      --color-text: #2f2a24;
-      --color-text-muted: #72695f;
-      --color-text-faint: #a29789;
-      --color-primary: #5d7a52;
-      --color-primary-hover: #4b6642;
-      --color-primary-highlight: #dce6d7;
-      --color-accent: #a7865e;
-      --color-text-inverse: #f7f4ef;
-      --shadow-sm: 0 1px 2px rgba(50, 38, 24, 0.05);
-      --shadow-md: 0 12px 30px rgba(50, 38, 24, 0.08);
-      --font-display: 'Cormorant Garamond', Georgia, serif;
-      --font-body: 'Manrope', 'Segoe UI', sans-serif;
+      --radius-sm: 0.45rem;
+      --radius-md: 0.8rem;
+      --radius-lg: 1.2rem;
+      --radius-xl: 1.8rem;
+      --radius-full: 999px;
+      --color-bg: #f8f4ee;
+      --color-surface: #fffaf4;
+      --color-surface-2: #f1e9dd;
+      --color-surface-offset: #e8dece;
+      --color-border: rgba(52, 43, 34, 0.12);
+      --color-divider: rgba(52, 43, 34, 0.08);
+      --color-text: #2d261f;
+      --color-text-muted: #6b6258;
+      --color-text-faint: #9d9285;
+      --color-primary: #6f7f45;
+      --color-primary-hover: #596738;
+      --color-primary-highlight: #e4ead5;
+      --color-accent: #b5702d;
+      --color-accent-soft: #fbeddc;
+      --color-fun: #8c5fb3;
+      --color-fun-soft: #efe5f8;
+      --color-text-inverse: #fffdf8;
+      --shadow-sm: 0 1px 2px rgba(38, 26, 10, 0.05), 0 8px 20px rgba(38, 26, 10, 0.04);
+      --shadow-md: 0 18px 40px rgba(38, 26, 10, 0.10);
+      --font-display: 'Literata', Georgia, serif;
+      --font-body: 'Manrope', sans-serif;
+      --content-default: 1180px;
       --content-narrow: 760px;
-      --content-default: 1120px;
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
     }
-
     [data-theme="dark"] {
-      --color-bg: #191714;
-      --color-surface: #22201c;
-      --color-surface-2: #2a2722;
-      --color-surface-offset: #312d27;
-      --color-border: #454038;
-      --color-divider: #3a362f;
-      --color-text: #e9e1d7;
-      --color-text-muted: #b3a89b;
-      --color-text-faint: #81776c;
-      --color-primary: #88a878;
-      --color-primary-hover: #9db88f;
-      --color-primary-highlight: #2f3a2c;
-      --color-accent: #d4b38a;
-      --color-text-inverse: #1c1a17;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-      --shadow-md: 0 12px 30px rgba(0,0,0,0.28);
+      --color-bg: #151311;
+      --color-surface: #1e1a17;
+      --color-surface-2: #29241f;
+      --color-surface-offset: #332d26;
+      --color-border: rgba(245, 231, 214, 0.12);
+      --color-divider: rgba(245, 231, 214, 0.08);
+      --color-text: #efe3d4;
+      --color-text-muted: #b9ab99;
+      --color-text-faint: #857867;
+      --color-primary: #a1b97b;
+      --color-primary-hover: #b8cc95;
+      --color-primary-highlight: #2c3422;
+      --color-accent: #e0a568;
+      --color-accent-soft: #3a2b1c;
+      --color-fun: #bb9bdf;
+      --color-fun-soft: #332742;
+      --color-text-inverse: #1d1915;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 20px rgba(0, 0, 0, 0.16);
+      --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.30);
     }
-
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme]) {
-        --color-bg: #191714;
-        --color-surface: #22201c;
-        --color-surface-2: #2a2722;
-        --color-surface-offset: #312d27;
-        --color-border: #454038;
-        --color-divider: #3a362f;
-        --color-text: #e9e1d7;
-        --color-text-muted: #b3a89b;
-        --color-text-faint: #81776c;
-        --color-primary: #88a878;
-        --color-primary-hover: #9db88f;
-        --color-primary-highlight: #2f3a2c;
-        --color-accent: #d4b38a;
-        --color-text-inverse: #1c1a17;
+        --color-bg: #151311;
+        --color-surface: #1e1a17;
+        --color-surface-2: #29241f;
+        --color-surface-offset: #332d26;
+        --color-border: rgba(245, 231, 214, 0.12);
+        --color-divider: rgba(245, 231, 214, 0.08);
+        --color-text: #efe3d4;
+        --color-text-muted: #b9ab99;
+        --color-text-faint: #857867;
+        --color-primary: #a1b97b;
+        --color-primary-hover: #b8cc95;
+        --color-primary-highlight: #2c3422;
+        --color-accent: #e0a568;
+        --color-accent-soft: #3a2b1c;
+        --color-fun: #bb9bdf;
+        --color-fun-soft: #332742;
+        --color-text-inverse: #1d1915;
       }
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html {
-      scroll-behavior: smooth;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-      scroll-padding-top: 6rem;
-    }
+    * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; scroll-padding-top: 6rem; -webkit-font-smoothing: antialiased; }
     body {
       min-height: 100vh;
       font-family: var(--font-body);
       font-size: var(--text-base);
-      line-height: 1.7;
+      line-height: 1.68;
       color: var(--color-text);
       background:
-        radial-gradient(circle at top left, rgba(167, 134, 94, 0.08), transparent 28%),
-        linear-gradient(180deg, var(--color-bg), var(--color-surface));
+        radial-gradient(circle at 12% 8%, rgba(181,112,45,0.08), transparent 24%),
+        radial-gradient(circle at 88% 16%, rgba(111,127,69,0.08), transparent 22%),
+        linear-gradient(180deg, var(--color-bg), color-mix(in srgb, var(--color-bg) 70%, var(--color-surface) 30%));
     }
-    img, svg { display: block; max-width: 100%; height: auto; }
     a { color: inherit; text-decoration: none; }
     button { font: inherit; border: none; background: none; cursor: pointer; }
     :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; border-radius: var(--radius-sm); }
-    .sr-only {
-      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-    }
-    .container { width: min(calc(100% - 2rem), var(--content-default)); margin-inline: auto; }
-    .narrow { width: min(calc(100% - 2rem), var(--content-narrow)); margin-inline: auto; }
     .skip-link {
-      position: absolute; left: var(--space-4); top: -4rem; padding: var(--space-3) var(--space-4);
-      background: var(--color-primary); color: var(--color-text-inverse); border-radius: var(--radius-full); z-index: 100;
-      transition: top 180ms ease;
+      position: absolute; top: -3rem; left: var(--space-4); z-index: 100;
+      background: var(--color-primary); color: var(--color-text-inverse); padding: var(--space-3) var(--space-4); border-radius: var(--radius-full);
     }
     .skip-link:focus { top: var(--space-4); }
+    .container { width: min(calc(100% - 2rem), var(--content-default)); margin-inline: auto; }
+    .narrow { width: min(calc(100% - 2rem), var(--content-narrow)); margin-inline: auto; }
 
     .site-header {
-      position: sticky; top: 0; z-index: 50; backdrop-filter: blur(10px);
-      background: color-mix(in srgb, var(--color-bg) 84%, transparent);
-      border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+      position: sticky; top: 0; z-index: 60; backdrop-filter: blur(12px);
+      background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+      border-bottom: 1px solid var(--color-divider);
     }
     .header-row {
-      display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
-      min-height: 4.75rem;
+      min-height: 4.75rem; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
     }
-    .brand {
-      display: inline-flex; align-items: center; gap: var(--space-3); font-weight: 700;
-    }
+    .brand { display: inline-flex; align-items: center; gap: var(--space-3); }
     .brand-mark {
-      width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--color-surface-2);
-      display: grid; place-items: center; color: var(--color-primary); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 10%, transparent);
+      width: 2.9rem; height: 2.9rem; border-radius: 50%;
+      display: grid; place-items: center; background: var(--color-surface); box-shadow: var(--shadow-sm); border: 1px solid var(--color-border);
+      color: var(--color-accent);
     }
-    .brand-name { font-size: var(--text-sm); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-muted); }
-    .header-actions { display: flex; align-items: center; gap: var(--space-2); }
-    .theme-toggle, .menu-link {
-      min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
-      border-radius: var(--radius-full); color: var(--color-text-muted);
+    .brand-text strong { display: block; font-size: var(--text-sm); letter-spacing: 0.04em; text-transform: uppercase; }
+    .brand-text span { display: block; color: var(--color-text-muted); font-size: var(--text-xs); }
+    .nav { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+    .nav a, .theme-toggle {
+      min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-full); font-size: var(--text-sm); color: var(--color-text-muted);
+      display: inline-flex; align-items: center; justify-content: center;
     }
-    .menu-link { padding-inline: var(--space-4); font-size: var(--text-sm); }
-    .menu-link:hover, .theme-toggle:hover { background: var(--color-surface-2); color: var(--color-text); }
+    .nav a:hover, .theme-toggle:hover { background: var(--color-surface); color: var(--color-text); }
+    .theme-toggle { min-width: 44px; padding: 0; }
 
-    .hero {
-      padding: clamp(var(--space-12), 10vw, var(--space-24)) 0 var(--space-16);
-    }
-    .hero-grid {
-      display: grid; grid-template-columns: 1.1fr 0.9fr; gap: var(--space-8); align-items: center;
-    }
+    .hero { padding: clamp(var(--space-12), 11vw, var(--space-24)) 0 var(--space-16); }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: var(--space-8); align-items: start; }
     .eyebrow {
-      display: inline-flex; align-items: center; gap: var(--space-2); padding: 0.45rem 0.85rem;
-      border-radius: var(--radius-full); background: var(--color-primary-highlight); color: var(--color-primary);
-      font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;
-      margin-bottom: var(--space-5);
+      display: inline-flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-5);
+      padding: 0.55rem 0.9rem; border-radius: var(--radius-full); background: var(--color-accent-soft); color: var(--color-accent);
+      font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
     }
-    h1, h2, h3 { font-family: var(--font-display); line-height: 1.06; font-weight: 600; }
-    h1 { font-size: var(--text-2xl); max-width: 12ch; margin-bottom: var(--space-5); }
-    .hero p {
-      max-width: 58ch; color: var(--color-text-muted); margin-bottom: var(--space-6);
+    h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.05; font-weight: 700; }
+    h1 { font-size: var(--text-2xl); max-width: 11ch; margin-bottom: var(--space-5); }
+    .hero p { color: var(--color-text-muted); max-width: 60ch; }
+    .hero-copy p + p { margin-top: var(--space-4); }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+    .button {
+      min-height: 48px; padding: 0.85rem 1.1rem; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: var(--space-2);
+      font-weight: 700;
     }
-    .hero-meta {
-      display: flex; flex-wrap: wrap; gap: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm);
+    .button-primary { background: var(--color-primary); color: var(--color-text-inverse); }
+    .button-primary:hover { background: var(--color-primary-hover); }
+    .button-secondary { background: var(--color-surface); border: 1px solid var(--color-border); }
+
+    .hero-panel {
+      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md); padding: var(--space-6); position: relative; overflow: hidden;
     }
-    .meta-chip {
-      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.9rem; border-radius: var(--radius-full);
-      background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-text) 9%, transparent);
-      box-shadow: var(--shadow-sm);
+    .hero-panel::before {
+      content: "🥔";
+      position: absolute; right: -0.4rem; top: -0.6rem; font-size: 4rem; opacity: 0.15; transform: rotate(12deg);
     }
-    .hero-visual {
-      position: relative; min-height: 26rem; border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-md);
-      background: var(--color-surface-2);
+    .hero-panel-grid { display: grid; gap: var(--space-4); }
+    .mini-card {
+      padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface-2); border: 1px solid var(--color-border);
     }
-    .hero-visual img { width: 100%; height: 100%; object-fit: cover; }
-    .hero-note {
-      position: absolute; right: var(--space-4); bottom: var(--space-4); width: min(19rem, calc(100% - 2rem));
-      padding: var(--space-4); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--color-surface) 80%, transparent);
-      backdrop-filter: blur(10px); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
-    }
-    .hero-note strong { display: block; margin-bottom: var(--space-2); font-size: var(--text-sm); }
-    .hero-note p { margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+    .mini-card strong { display: block; margin-bottom: var(--space-2); }
+    .mini-card p { color: var(--color-text-muted); font-size: var(--text-sm); }
+    .emoji-row { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: 1.55rem; }
 
     .section { padding: clamp(var(--space-10), 8vw, var(--space-20)) 0; }
     .section-head {
-      display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: var(--space-8); align-items: end;
-      margin-bottom: var(--space-8);
+      display: grid; grid-template-columns: 0.8fr 1.2fr; gap: var(--space-8); align-items: end; margin-bottom: var(--space-8);
     }
     .section-kicker {
-      color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--text-xs); font-weight: 700; margin-bottom: var(--space-3);
+      color: var(--color-fun); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 800; margin-bottom: var(--space-3);
     }
     h2 { font-size: var(--text-xl); }
     .section-intro { color: var(--color-text-muted); max-width: 62ch; }
 
-    .articles {
-      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5);
+    .masonry { columns: 3 290px; column-gap: var(--space-5); }
+    .joke-card {
+      break-inside: avoid; margin-bottom: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl); padding: var(--space-5); box-shadow: var(--shadow-sm);
     }
-    .card {
-      background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
-      border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-sm);
-      display: flex; flex-direction: column;
+    .joke-top { display: flex; justify-content: space-between; gap: var(--space-3); align-items: start; margin-bottom: var(--space-4); }
+    .badge {
+      display: inline-flex; align-items: center; gap: var(--space-2); padding: 0.4rem 0.7rem; border-radius: var(--radius-full);
+      background: var(--color-primary-highlight); color: var(--color-primary); font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
     }
-    .card-media { aspect-ratio: 16 / 10; overflow: hidden; background: var(--color-surface-2); }
-    .card-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 300ms ease; }
-    .card:hover .card-media img { transform: scale(1.04); }
-    .card-body { padding: var(--space-6); display: grid; gap: var(--space-4); }
-    .card-topline {
-      display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
-      color: var(--color-text-faint); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em;
-    }
-    h3 { font-size: 2rem; }
-    .card p { color: var(--color-text-muted); }
-    .card a {
-      display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-primary); font-weight: 700; font-size: var(--text-sm);
+    .emoji { font-size: 1.6rem; line-height: 1; }
+    .joke-card h3 { font-size: 1.85rem; margin-bottom: var(--space-3); }
+    .joke-card p { color: var(--color-text-muted); }
+    .joke-card p + p { margin-top: var(--space-3); }
+    .quote-line {
+      margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px dashed var(--color-divider); color: var(--color-text); font-weight: 700;
     }
 
-    .feature {
-      display: grid; grid-template-columns: 0.95fr 1.05fr; gap: var(--space-8); align-items: center;
-      background: var(--color-surface); border-radius: var(--radius-xl); padding: var(--space-5);
-      border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); box-shadow: var(--shadow-sm);
+    .bento {
+      display: grid; grid-template-columns: 1.2fr 0.8fr 0.9fr; gap: var(--space-5);
     }
-    .feature-image { border-radius: calc(var(--radius-xl) - var(--space-5)); overflow: hidden; min-height: 24rem; }
-    .feature-image img { width: 100%; height: 100%; object-fit: cover; }
-    .feature-copy p { color: var(--color-text-muted); margin-top: var(--space-4); }
-    .checklist { display: grid; gap: var(--space-3); margin-top: var(--space-5); }
-    .checklist li {
-      list-style: none; display: flex; gap: var(--space-3); align-items: flex-start; color: var(--color-text-muted);
+    .panel {
+      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-6); box-shadow: var(--shadow-sm);
+      min-height: 100%;
     }
-    .checklist svg { flex: 0 0 auto; margin-top: 0.2rem; color: var(--color-primary); }
+    .panel.tall { grid-row: span 2; }
+    .panel.wide { grid-column: span 2; }
+    .panel h3 { font-size: 2rem; margin-bottom: var(--space-3); }
+    .panel p { color: var(--color-text-muted); }
+    .panel ul { margin-top: var(--space-4); display: grid; gap: var(--space-3); }
+    .panel li { list-style: none; color: var(--color-text-muted); }
 
-    .timeline {
-      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4);
+    .terminal {
+      margin-top: var(--space-4); border-radius: calc(var(--radius-xl) - var(--space-6)); background: #1b1917; color: #e7dccd; padding: var(--space-4); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.95rem;
     }
-    .step {
-      padding: var(--space-5); border-radius: var(--radius-lg); background: var(--color-surface);
-      border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
-    }
-    .step-number {
-      width: 2.5rem; height: 2.5rem; border-radius: 50%; display: grid; place-items: center;
-      background: var(--color-primary-highlight); color: var(--color-primary); font-weight: 700; margin-bottom: var(--space-4);
-    }
-    .step p { color: var(--color-text-muted); margin-top: var(--space-2); }
+    .terminal .ok { color: #9bd27d; }
+    .terminal .warn { color: #f4bf7a; }
 
-    .quote-block {
-      padding: var(--space-10); border-radius: var(--radius-xl); background: linear-gradient(135deg, var(--color-surface), var(--color-surface-2));
-      border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); text-align: center;
+    .dialogues { display: grid; gap: var(--space-4); }
+    .bubble {
+      padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); background: var(--color-surface-2); border: 1px solid var(--color-border);
     }
-    .quote-block p { font-family: var(--font-display); font-size: clamp(1.8rem, 1.2rem + 1.8vw, 3rem); max-width: 18ch; margin-inline: auto; }
-    .quote-block span { display: block; margin-top: var(--space-4); color: var(--color-text-muted); font-size: var(--text-sm); }
+    .bubble strong { display: block; margin-bottom: var(--space-2); }
 
-    .footer {
-      padding: var(--space-10) 0 var(--space-12); color: var(--color-text-muted);
+    .tips-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+    .tip {
+      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-5);
     }
+    .tip h3 { font-size: 1.75rem; margin-bottom: var(--space-3); }
+    .tip p { color: var(--color-text-muted); }
+
+    .list-fun { display: grid; gap: var(--space-3); margin-top: var(--space-4); }
+    .list-fun li { list-style: none; display: flex; gap: var(--space-3); color: var(--color-text-muted); }
+    .list-fun span:first-child { width: 1.5rem; flex: 0 0 1.5rem; }
+
+    .accordion { display: grid; gap: var(--space-4); }
+    details {
+      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+    }
+    summary {
+      cursor: pointer; list-style: none; font-weight: 800; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+    }
+    summary::-webkit-details-marker { display: none; }
+    details p { margin-top: var(--space-4); color: var(--color-text-muted); }
+
+    .final-callout {
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent-soft) 60%, var(--color-surface) 40%), var(--color-surface));
+      border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-8); box-shadow: var(--shadow-md);
+    }
+    .final-callout p { color: var(--color-text-muted); margin-top: var(--space-3); }
+
+    .footer { padding: var(--space-12) 0; }
     .footer-box {
-      display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); align-items: center;
       border-top: 1px solid var(--color-divider); padding-top: var(--space-6);
-    }
-    .footer-links { display: flex; flex-wrap: wrap; gap: var(--space-4); font-size: var(--text-sm); }
-
-    .icon-inline { width: 1rem; height: 1rem; }
-
-    @media (max-width: 980px) {
-      .hero-grid, .section-head, .feature { grid-template-columns: 1fr; }
-      .articles, .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      h1 { max-width: 16ch; }
-      .hero-visual { min-height: 22rem; }
+      display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); color: var(--color-text-muted);
     }
 
-    @media (max-width: 640px) {
-      .header-row { align-items: flex-start; padding-block: var(--space-3); }
-      .header-actions { flex-wrap: wrap; justify-content: flex-end; }
-      .menu-link { padding-inline: var(--space-3); }
-      .articles, .timeline { grid-template-columns: 1fr; }
+    @media (max-width: 1080px) {
+      .hero-grid, .section-head, .bento, .tips-grid { grid-template-columns: 1fr; }
+      .panel.tall, .panel.wide { grid-row: auto; grid-column: auto; }
+      .masonry { columns: 2 280px; }
+    }
+    @media (max-width: 680px) {
+      .header-row { padding-block: var(--space-3); align-items: flex-start; }
+      .nav { justify-content: flex-start; }
+      .masonry { columns: 1; }
       .hero { padding-top: var(--space-10); }
-      .hero-visual { min-height: 18rem; }
-      .quote-block { padding: var(--space-6); text-align: left; }
+      h1 { max-width: 13ch; }
+      .final-callout { padding: var(--space-6); }
     }
-
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;
-      }
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#content">Перейти к содержанию</a>
+  <a class="skip-link" href="#main">Перейти к контенту</a>
 
   <header class="site-header">
     <div class="container header-row">
       <a class="brand" href="#top" aria-label="На главную">
         <span class="brand-mark" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3c3 2.2 4.5 5 4.5 8.4 0 5-3.2 8.3-4.5 9.6-1.3-1.3-4.5-4.6-4.5-9.6C7.5 8 9 5.2 12 3Z"></path>
-            <path d="M12 8v8"></path>
-            <path d="M9.5 11.5c.9.6 1.8.9 2.5.9s1.6-.3 2.5-.9"></path>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14c1.8-3.4 4.6-5.3 8-5.3S18.2 10.6 20 14"></path>
+            <path d="M7 14c0 3.1 2.2 5.8 5 7 2.8-1.2 5-3.9 5-7"></path>
+            <path d="M12 3v6"></path>
           </svg>
         </span>
-        <span>
-          <span class="brand-name">Тихий огород</span>
+        <span class="brand-text">
+          <strong>Картофельный угар</strong>
+          <span>юмор, грядки и немного драматургии</span>
         </span>
       </a>
-      <div class="header-actions">
-        <a class="menu-link" href="#articles">Статьи</a>
-        <a class="menu-link" href="#practice">Практика</a>
-        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Переключить тему">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
-      </div>
+      <nav class="nav" aria-label="Навигация">
+        <a href="#jokes">Приколы</a>
+        <a href="#life">Жизнь грядки</a>
+        <a href="#faq">FAQ</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Переключить тему">🌙</button>
+      </nav>
     </div>
   </header>
 
-  <main id="content">
+  <main id="main">
     <section class="hero" id="top">
       <div class="container hero-grid">
-        <div>
-          <span class="eyebrow">
-            <img class="icon-inline" src="https://api.iconify.design/lucide:leaf.svg" alt="" width="16" height="16" loading="lazy" />
-            Спокойный журнал ухода
-          </span>
-          <h1>Прополка картофеля без спешки, но с хорошим результатом</h1>
-          <p>Этот одностраничный сайт собран как небольшой сельский журнал: с мягкой подачей, ясными советами и короткими статьями о том, как держать картофельные гряды чистыми, не перегружая себя лишней работой.</p>
-          <div class="hero-meta">
-            <span class="meta-chip"><img class="icon-inline" src="https://api.iconify.design/lucide:clock-3.svg" alt="" width="16" height="16" loading="lazy" />Лучше понемногу, но регулярно</span>
-            <span class="meta-chip"><img class="icon-inline" src="https://api.iconify.design/lucide:flower-2.svg" alt="" width="16" height="16" loading="lazy" />Ручной и аккуратный подход</span>
+        <div class="hero-copy">
+          <span class="eyebrow">🥔 Сайт с приколами вместо унылой агрономии</span>
+          <h1>Когда вышел полоть картошку, а вышел в большое сельское стендап-шоу</h1>
+          <p>Это уже не просто страница про прополку. Это полноценный мемориал всем дачникам, которые в семь утра уверенно сказали: «Щас быстренько сорняк выдерну» — и вернулись домой как люди, познавшие четыре стадии сельского просветления.</p>
+          <p>Здесь много контента: шуточные заметки, диалоги, мини-истории, бытовая философия междурядий, а также немного правды о том, почему маленький сорняк к вечеру ощущается как очень личный враг.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#jokes">😂 Читать приколы</a>
+            <a class="button button-secondary" href="#life">🌱 Смотреть жизну</a>
           </div>
         </div>
-        <div class="hero-visual">
-          <img src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1200&q=80" alt="Картофельные ряды на ухоженном участке" width="1200" height="900" loading="eager" decoding="async" />
-          <div class="hero-note">
-            <strong>Неспешный сценарий ухода</strong>
-            <p>Сначала осмотр гряд, затем лёгкая прополка по влажной земле, после — проветривание междурядий и короткий отдых. Такой ритм бережёт и посадки, и силы.</p>
+        <aside class="hero-panel" aria-label="Весёлые факты">
+          <div class="hero-panel-grid">
+            <div class="mini-card">
+              <strong>📌 Статус огородника</strong>
+              <p>Планировал лёгкую прогулку с тяпкой, но вступил в неофициальный сезонный конфликт с мокрицей, лебедой и собственным поясничным отделом.</p>
+            </div>
+            <div class="mini-card">
+              <strong>📊 Индекс драматизма</strong>
+              <p>Если после первой грядки вы уже разговариваете с картошкой как с коллегой, значит рабочая атмосфера создана правильно.</p>
+            </div>
+            <div class="mini-card">
+              <strong>🎭 Встроенные спецэффекты</strong>
+              <div class="emoji-row" aria-label="Набор эмоций">
+                <span>🥔</span><span>🌿</span><span>😤</span><span>🪓</span><span>☀️</span><span>🫡</span><span>🧤</span><span>😅</span>
+              </div>
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
     </section>
 
-    <section class="section" id="articles">
+    <section class="section" id="jokes">
       <div class="container">
         <div class="section-head">
           <div>
-            <div class="section-kicker">Подборка материалов</div>
-            <h2>Три спокойные статьи о прополке</h2>
+            <div class="section-kicker">Много контента</div>
+            <h2>Большой архив картофельных приколов</h2>
           </div>
-          <p class="section-intro">Материалы ниже оформлены как короткие чтения: когда выходить на участок, чем работать между рядками и как не повредить молодой картофель во время ухода.</p>
+          <p class="section-intro">Вместо картинок здесь работают эмодзи, ритм текста и встроенные декоративные элементы. Получается сайт, который выглядит живо, но не перегружается лишними внешними материалами.</p>
         </div>
-
-        <div class="articles">
-          <article class="card">
-            <div class="card-media">
-              <img src="https://images.unsplash.com/photo-1471193945509-9ad0617afabf?auto=format&fit=crop&w=1200&q=80" alt="Раннее утро на огороде с мягким светом" width="1200" height="750" loading="lazy" decoding="async" />
-            </div>
-            <div class="card-body">
-              <div class="card-topline">
-                <span>Статья 1</span>
-                <span>Сроки и ритм</span>
-              </div>
-              <h3>Когда лучше начинать прополку</h3>
-              <p>Первый проход удобно делать, когда сорняки ещё малы, а почва после дождя или полива уже рыхлая и податливая. В это время корешки легко выходят из земли, а движение тяпки получается мягким и точным.</p>
-              <a href="#practice">Смотреть практику
-                <img class="icon-inline" src="https://api.iconify.design/lucide:arrow-right.svg" alt="" width="16" height="16" loading="lazy" />
-              </a>
-            </div>
+        <div class="masonry">
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">🌿 Бытовой реализм</span><span class="emoji">😮‍💨</span></div>
+            <h3>Сорняк, который «тут буквально один»</h3>
+            <p>Каждый дачник знает этот коварный сюжет. Ты выходишь на участок, замечаешь один сорняк, наклоняешься, выдёргиваешь его — и внезапно оказываешься в новой сюжетной арке длиной в три часа.</p>
+            <p>Картошка в это время молча наблюдает и, кажется, думает: «Ну наконец-то ты заметил, что тут творится».</p>
+            <div class="quote-line">«Пять минут на грядке» — один из самых смелых жанров фантастики.</div>
           </article>
 
-          <article class="card">
-            <div class="card-media">
-              <img src="https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=1200&q=80" alt="Садовый ручной инструмент на земле" width="1200" height="750" loading="lazy" decoding="async" />
-            </div>
-            <div class="card-body">
-              <div class="card-topline">
-                <span>Статья 2</span>
-                <span>Инструменты</span>
-              </div>
-              <h3>Чем удобно работать между рядами</h3>
-              <p>Для небольшого участка чаще всего хватает лёгкой тяпки, узкого рыхлителя и перчаток. Один инструмент подрезает сорняк, другой помогает осторожно открыть верхний слой земли и дать корням больше воздуха.</p>
-              <a href="#tools">Перейти к блоку
-                <img class="icon-inline" src="https://api.iconify.design/lucide:arrow-right.svg" alt="" width="16" height="16" loading="lazy" />
-              </a>
-            </div>
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">🧤 Диалоги сезона</span><span class="emoji">🥲</span></div>
+            <h3>Разговор с собой после второй грядки</h3>
+            <p>— Я просто для разминки вышел. <br>— Отлично, тогда почему ты уже выбираешь, на какую лопату можно опереться как на моральную поддержку?</p>
+            <p>Самое смешное, что третью грядку всё равно начинаешь с выражением лица человека, который идёт выполнять древний семейный обет.</p>
           </article>
 
-          <article class="card">
-            <div class="card-media">
-              <img src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1200&q=80" alt="Зелёные молодые растения в рыхлой почве" width="1200" height="750" loading="lazy" decoding="async" />
-            </div>
-            <div class="card-body">
-              <div class="card-topline">
-                <span>Статья 3</span>
-                <span>Бережный уход</span>
-              </div>
-              <h3>Как не задеть молодые кусты</h3>
-              <p>Около стеблей лучше работать рукой или короткими движениями узкого инструмента. Чем спокойнее темп, тем меньше риск сломать ростки, оголить корни или уплотнить землю лишними шагами.</p>
-              <a href="#rhythm">Читать советы
-                <img class="icon-inline" src="https://api.iconify.design/lucide:arrow-right.svg" alt="" width="16" height="16" loading="lazy" />
-              </a>
-            </div>
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">☀️ Погодный жанр</span><span class="emoji">🔥</span></div>
+            <h3>Утренний оптимизм против полуденного солнца</h3>
+            <p>В 08:00 ты выглядишь как хозяин участка. В 12:30 — как персонаж, который понял истинную цену выражения «работа на свежем воздухе».</p>
+            <p>Шляпа съехала, вода закончилась, а сорняк, кажется, только разогрелся.</p>
+          </article>
+
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">🥔 Картофельная психология</span><span class="emoji">🧐</span></div>
+            <h3>Почему куст картофеля всегда выглядит осуждающе</h3>
+            <p>Ты подходишь к кусту с добрыми намерениями, но он всё равно смотрит так, будто помнит, как ты обещал прополоть его ещё во вторник.</p>
+            <p>Справедливости ради, куст прав: во вторник ты действительно обещал. И в среду тоже.</p>
+          </article>
+
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">🪓 Инструментальная поэзия</span><span class="emoji">🎼</span></div>
+            <h3>Тяпка как музыкальный инструмент</h3>
+            <p>Если прислушаться, прополка звучит как особый дачный техно-сет: шорох земли, тихий стук рукоятки, вздох человека и внезапное «ой» после встречи с корнем.</p>
+            <p>Главный хит сезона — трек «Я только начал, почему уже устал».</p>
+          </article>
+
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">😅 Личный опыт</span><span class="emoji">📆</span></div>
+            <h3>План на день и реальность</h3>
+            <p>План: прополоть картошку, полить теплицу, разобрать сарай, почитать на веранде. Реальность: два часа спорить с междурядьем, ещё час стоять и смотреть на сделанное, пытаясь понять, почему оно снова заросло с краю.</p>
+            <div class="quote-line">Огород особенно ценит амбициозные, но нереалистичные расписания.</div>
+          </article>
+
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">👀 Соседский фактор</span><span class="emoji">🫣</span></div>
+            <h3>Опасный момент: вас заметил сосед</h3>
+            <p>Пока ты полешь молча, всё под контролем. Но как только сосед скажет: «А я уже всё своё прошёл», внутренняя комедия мгновенно превращается в спортивную драму.</p>
+            <p>После этого начинаешь полоть с такой решимостью, будто на кону районный чемпионат по междурядьям.</p>
+          </article>
+
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">🌧️ Классика жанра</span><span class="emoji">🤦</span></div>
+            <h3>Когда идеально распланировал работу, а потом дождь</h3>
+            <p>Ничто так не сближает с природой, как момент, когда ты всё подготовил, вынес перчатки, тяпку и воду, а небо с уважением посмотрело на твои намерения и сказало: «Нет».</p>
+            <p>Самое обидное, что через час солнце снова выходит, но уже исключительно чтобы сделать влажную почву липкой и коварной.</p>
+          </article>
+
+          <article class="joke-card">
+            <div class="joke-top"><span class="badge">🏆 Героизм</span><span class="emoji">🫡</span></div>
+            <h3>Медаль за особые заслуги перед картофелем</h3>
+            <p>Если вы допололи до конца и при этом ничего не сломали, не потеряли и не сказали фразу «ну его всё», вам положена внутренняя дачная награда.</p>
+            <p>Она не выдаётся официально, но отлично ощущается вечером с чаем и видом на чистые рядки.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="practice">
-      <div class="container feature">
-        <div class="feature-image">
-          <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=80" alt="Аккуратные грядки на участке в тёплом дневном свете" width="1400" height="1000" loading="lazy" decoding="async" />
-        </div>
-        <div class="feature-copy">
-          <div class="section-kicker">Практический подход</div>
-          <h2>Простой порядок работы на грядке</h2>
-          <p>Удобнее всего разбивать уход на короткие спокойные этапы. Тогда прополка не превращается в тяжёлую задачу и не утомляет спину, а картофель постепенно получает чистое и свободное пространство для роста.</p>
-          <ul class="checklist" role="list">
-            <li>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-              Осмотрите рядки и отметьте участки, где сорняк уже забирает свет и влагу.
-            </li>
-            <li>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-              Начинайте с междурядий, а к стеблям подходите только после грубой очистки.
-            </li>
-            <li>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-              После прополки слегка разровняйте почву, чтобы влага задерживалась ровнее.
-            </li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="tools">
+    <section class="section" id="life">
       <div class="container">
         <div class="section-head">
           <div>
-            <div class="section-kicker">Неспешная организация</div>
-            <h2>Небольшой сценарий на один выход в огород</h2>
+            <div class="section-kicker">Жизнь грядки</div>
+            <h2>Как это выглядит, если описывать прополку честно</h2>
           </div>
-          <p class="section-intro">Этот ритм хорош тем, что не требует большого рывка. Он подходит для дачных посадок, где важны внимательность, чистые междурядья и аккуратное отношение к каждому кусту.</p>
+          <p class="section-intro">Ниже не просто шутки, а целый набор сюжетов: псевдоаналитика, сельский терминал, разговоры с картошкой и наблюдения, которые почему-то одинаково знакомы почти всем, кто хоть раз реально работал на участке.</p>
         </div>
-        <div class="timeline">
-          <article class="step">
-            <div class="step-number">1</div>
-            <h3>Осмотр</h3>
-            <p>Пройдите вдоль рядков и оцените плотность сорняков, влажность земли и состояние ботвы.</p>
+
+        <div class="bento">
+          <article class="panel tall">
+            <h3>Картофельный эмоциональный цикл</h3>
+            <p>Каждая прополка проходит по одному и тому же сценарию, и спорить с этим бессмысленно.</p>
+            <ul>
+              <li>🌤️ <strong>Стадия 1.</strong> «Ну, сейчас я быстро всё освежу».</li>
+              <li>🌱 <strong>Стадия 2.</strong> «Интересно, откуда их столько взялось?»</li>
+              <li>😤 <strong>Стадия 3.</strong> «Я уже не полю, я веду переговоры с хаосом».</li>
+              <li>🫠 <strong>Стадия 4.</strong> «Надо было начинать раньше, но тогда я тоже так думал».</li>
+              <li>🏅 <strong>Стадия 5.</strong> «Как красиво. Почему я не делаю это регулярно?»</li>
+            </ul>
+            <div class="terminal" aria-label="Шуточный терминал">
+              <div>$ sudo weed --potato-bed --mode careful</div>
+              <div class="ok">[ok] found: 184 tiny weeds</div>
+              <div class="warn">[warn] back: slightly offended</div>
+              <div class="ok">[ok] rows: now respectable</div>
+            </div>
           </article>
-          <article class="step">
-            <div class="step-number">2</div>
-            <h3>Междурядья</h3>
-            <p>Снимите основную массу сорняков тяпкой, оставляя у кустов небольшой защитный запас.</p>
+
+          <article class="panel wide">
+            <h3>Мини-пьеса «Человек и междурядье»</h3>
+            <div class="dialogues">
+              <div class="bubble"><strong>Человек:</strong> Я просто чуть-чуть прорыхлю и всё.</div>
+              <div class="bubble"><strong>Междурядье:</strong> Отличный настрой. Слева у меня ещё сорок минут сюжета.</div>
+              <div class="bubble"><strong>Картошка:</strong> Только аккуратно, пожалуйста. Я тут вообще-то расту.</div>
+              <div class="bubble"><strong>Сорняк:</strong> А я, между прочим, тоже. И очень мотивирован.</div>
+            </div>
           </article>
-          <article class="step">
-            <div class="step-number">3</div>
-            <h3>У корней</h3>
-            <p>Самые близкие к стеблю сорняки удаляйте рукой или коротким осторожным движением.</p>
+
+          <article class="panel">
+            <h3>Что реально бесит</h3>
+            <p>Есть маленькие детали, которые превращают обычный выход в огород в комедию положений.</p>
+            <ul class="list-fun">
+              <li><span>🪴</span><span>Сорняк, который обрывается, но корень остаётся и как будто смеётся.</span></li>
+              <li><span>👟</span><span>Ком земли, который обязательно падает именно в обувь.</span></li>
+              <li><span>🌤️</span><span>Солнце, начинающее жарить ровно тогда, когда ты вошёл во вкус.</span></li>
+            </ul>
           </article>
-          <article class="step">
-            <div class="step-number">4</div>
-            <h3>Выравнивание</h3>
-            <p>Легко разрыхлите верхний слой и оставьте гряды чистыми, ровными и проветриваемыми.</p>
+
+          <article class="panel">
+            <h3>Что неожиданно радует</h3>
+            <p>Есть и хорошие моменты, ради которых вся эта история вообще существует.</p>
+            <ul class="list-fun">
+              <li><span>✨</span><span>Когда рядок после работы вдруг становится реально аккуратным.</span></li>
+              <li><span>🥤</span><span>Первый глоток холодной воды после половины участка.</span></li>
+              <li><span>🌇</span><span>Вечерний взгляд на грядки с ощущением «ну вот теперь красиво».</span></li>
+            </ul>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="rhythm">
-      <div class="narrow quote-block">
-        <p>Хорошая прополка картофеля — это не борьба на скорость, а ровная внимательная работа, после которой участок выглядит тихо и опрятно.</p>
-        <span>Подход для размеренного дачного ритма</span>
+    <section class="section" id="notes">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Ещё больше контента</div>
+            <h2>Набор дачных наблюдений, которые слишком правдивы</h2>
+          </div>
+          <p class="section-intro">Этот раздел сделан как коллекция коротких эссе. Они смешные не потому, что придуманы ради шутки, а потому что каждый, кто реально полол картошку, хотя бы раз это проживал.</p>
+        </div>
+        <div class="tips-grid">
+          <article class="tip">
+            <h3>Эффект последнего рядка</h3>
+            <p>Последний ряд всегда кажется самым длинным. Он может быть таким же, как остальные, но человеческая душа уже устала, поэтому начинает измерять пространство не метрами, а моральными усилиями.</p>
+            <p>Именно тут рождается то самое огородное величие: ты уже не хочешь, но продолжаешь, потому что бросить на финише — это поражение перед травой.</p>
+          </article>
+          <article class="tip">
+            <h3>Теория маленькой паузы</h3>
+            <p>На участке нет более опасной фразы, чем «сяду на минутку». Минутка немедленно превращается в философский семинар на тему смысла труда, погодных перспектив и цены здоровой спины.</p>
+            <p>С другой стороны, именно в такие паузы приходит понимание, что огород — это не только физика, но и очень своеобразный вид медитации.</p>
+          </article>
+          <article class="tip">
+            <h3>Тихий ужас после дождя</h3>
+            <p>После хорошего дождя всё растёт с такой убедительностью, будто участок получил секретный апгрейд. Особенно те растения, которые вы не звали.</p>
+            <p>Тут дачник смотрит на картину и понимает: природа опять работала без согласования, и теперь придётся проводить внеплановую ревизию зелёного состава.</p>
+          </article>
+          <article class="tip">
+            <h3>Картофель как воспитатель характера</h3>
+            <p>Он учит главному: лучше сделать немного сегодня, чем героически страдать в выходные. Но это знание почему-то стабильно приходит только после героического страдания в выходные.</p>
+            <p>В этом и есть особая сельская мудрость — сначала прожить ошибку, потом красиво о ней шутить.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">FAQ</div>
+            <h2>Частые вопросы от людей, которых затянула картофельная сага</h2>
+          </div>
+          <p class="section-intro">Здесь собраны не официальные агрономические ответы, а честные шуточные формулировки о том, что обычно происходит на участке в реальной жизни.</p>
+        </div>
+        <div class="accordion">
+          <details>
+            <summary><span>Почему сорняков всегда больше, чем кажется издалека?</span><span>➕</span></summary>
+            <p>Потому что у сорняков выдающийся талант к маскировке. Издалека они выглядят как лёгкая неровность, а вблизи оказываются полноценным альтернативным государством внутри вашей грядки.</p>
+          </details>
+          <details>
+            <summary><span>Когда лучше выходить полоть картошку?</span><span>➕</span></summary>
+            <p>Лучше всего — до того момента, как сорняк психологически окреп и начал считать участок своим. А по ощущениям дачника идеальное время — это когда не жарко, не сыро и вы уже выпили чай, но ещё не передумали.</p>
+          </details>
+          <details>
+            <summary><span>Что делать, если кажется, что работа никогда не закончится?</span><span>➕</span></summary>
+            <p>Разделить участок на маленькие куски и делать по одному. Так мозг перестаёт драматизировать, а глаза получают доказательства, что прогресс существует и он не миф.</p>
+          </details>
+          <details>
+            <summary><span>Почему после прополки так приятно смотреть на грядки?</span><span>➕</span></summary>
+            <p>Потому что это один из редких видов труда, где результат буквально лежит перед вами в ровных чистых линиях. В этот момент даже спина может ненадолго простить всё, что вы с ней сделали.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="narrow final-callout">
+        <h2>Главный дачный прикол в том, что всё это тяжело, смешно и почему-то всё равно приятно</h2>
+        <p>Прополка картофеля редко выглядит как праздник в процессе, зато отлично ощущается после. Возможно, именно поэтому шутки про грядки такие живые: в них всегда смешаны усталость, абсурд, порядок, солнце, земля и очень человеческое желание потом стоять и довольным взглядом смотреть на сделанное.</p>
+        <p>Если коротко: 🥔 + 🌿 + 😅 + ☕ = нормальное дачное лето.</p>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <div class="container footer-box">
-      <p>Небольшой спокойный сайт в одном файле, оформленный как практический журнал для дачного сезона.</p>
-      <nav class="footer-links" aria-label="Нижняя навигация">
-        <a href="#articles">Статьи</a>
-        <a href="#practice">Практика</a>
-        <a href="#tools">Сценарий</a>
-      </nav>
+      <p>Сайт сделан в одном файле, с большим количеством текста, юмора и встроенных визуальных деталей без внешних картинок.</p>
+      <p>Эмодзи, SVG, типографика и аккуратные блоки здесь заменяют обычные изображения.</p>
     </div>
   </footer>
 
   <script>
-    (function(){
+    (function () {
       const toggle = document.querySelector('[data-theme-toggle]');
       const root = document.documentElement;
       let theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       root.setAttribute('data-theme', theme);
-      function renderIcon(mode) {
-        toggle.innerHTML = mode === 'dark'
-          ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>'
-          : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+      function paint(mode) {
+        toggle.textContent = mode === 'dark' ? '☀️' : '🌙';
         toggle.setAttribute('aria-label', mode === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему');
       }
-      renderIcon(theme);
-      toggle.addEventListener('click', function() {
+      paint(theme);
+      toggle.addEventListener('click', function () {
         theme = theme === 'dark' ? 'light' : 'dark';
         root.setAttribute('data-theme', theme);
-        renderIcon(theme);
+        paint(theme);
       });
     })();
   </script>
