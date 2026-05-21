@@ -11,15 +11,17 @@
 
 Этот репозиторий содержит установочный скрипт `remnascrypt.sh`.
 
-Скрипт позволяет автоматически:
+Скрипт автоматически:
 
-- установить необходимые зависимости
-- проверить A-запись домена и внешний IP сервера
-- проверить доступность портов `443`, `80` и порта ноды
-- выпустить сертификат Let's Encrypt через `certbot`
-- настроить nginx под SelfSNI
-- создать `docker-compose.yml` для `remnawave/node`
-- запустить контейнер ноды
+- устанавливает необходимые зависимости
+- определяет внешний IPv4-адрес сервера
+- проверяет A-запись домена и сравнивает её с внешним IP сервера
+- проверяет доступность портов `80`, `443`, порта SelfSNI и порта ноды
+- загружает кастомную заглушку `index.html` из репозитория GitHub
+- выпускает сертификат Let's Encrypt через `certbot` по схеме `HTTP-01 webroot`
+- настраивает nginx для работы SelfSNI
+- создаёт `docker-compose.yml` для `remnawave/node`
+- запускает контейнер ноды
 
 ---
 
@@ -45,13 +47,16 @@
 
 Перед запуском убедитесь, что:
 
-- у вас Debian или Ubuntu
+- используется Debian или Ubuntu
 - домен уже направлен на IP вашего сервера через A-запись
 - порт `443` свободен
-- порт `80` свободен
+- порт SelfSNI свободен, если вы указываете кастомный через `--selfsni-port`
 - выбранный порт ноды свободен
 - запуск выполняется от `root`
 - сервер имеет доступ в интернет
+- порт `80` доступен извне для прохождения проверки Let's Encrypt по `HTTP-01`
+
+> Примечание: если порт `80` уже занят **nginx**, это не проблема, так как скрипт сам настраивает nginx для `webroot`-проверки. Но режим установки без 80/tcp в текущей версии не поддерживается.
 
 ---
 
@@ -65,10 +70,15 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 
 ## Аргументы
 
-Скрипт поддерживает следующие аргументы:
+Скрипт поддерживает следующий рабочий аргумент:
 
 ```bash
 --selfsni-port <порт>
+```
+
+Также существует зарезервированный, но отключённый аргумент:
+
+```bash
 --without-80
 ```
 
@@ -90,9 +100,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 
 ### `--without-80`
 
-Флаг зарезервирован, но в текущей версии установщика не поддерживается.
+Флаг присутствует только как заглушка совместимости, но в текущей версии скрипта **отключён**.
 
-Текущая версия скрипта выпускает сертификат через `http-01`, поэтому для установки нужен свободный порт `80`.
+Причина: выпуск сертификата реализован через `certbot --webroot`, а значит требуется обычный `HTTP-01` доступ по `80/tcp`.
 
 ---
 
@@ -115,27 +125,55 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 - `curl`
 - `nginx`
 - `certbot`
-- `python3-certbot-nginx`
 - `git`
 - `dnsutils`
 - `ca-certificates`
+- `gnupg`
+- `lsb-release`
+
+При необходимости дополнительно устанавливаются:
+
 - `docker`
 - `docker-compose-plugin`
 
+> `docker compose` используется в формате Compose v2 plugin, то есть через команду `docker compose`, а не через старую отдельную утилиту `docker-compose`.
+
 ---
 
-## Что создаёт скрипт
+## Что создаёт и использует скрипт
 
 После успешного выполнения будут созданы и использованы следующие пути:
 
 ```text
+/var/www/remnascrypt
+/var/www/remnascrypt/index.html
+/etc/nginx/sites-available/remnascrypt.conf
+/etc/nginx/sites-enabled/remnascrypt.conf
 /opt/remnanode
 /opt/remnanode/docker-compose.yml
-/etc/nginx/sites-enabled/sni.conf
 /etc/letsencrypt/live/ВАШ_ДОМЕН/fullchain.pem
 /etc/letsencrypt/live/ВАШ_ДОМЕН/privkey.pem
-/var/www/html
 ```
+
+---
+
+## Кастомная заглушка сайта
+
+Текущая версия скрипта не генерирует HTML через heredoc внутри bash.
+
+Вместо этого она скачивает файл:
+
+```text
+https://raw.githubusercontent.com/imdeist/remnascrypt/main/index.html
+```
+
+и сохраняет его как:
+
+```text
+/var/www/remnascrypt/index.html
+```
+
+Это позволяет редактировать заглушку прямо в репозитории без изменения логики установочного скрипта.[web:36][web:39]
 
 ---
 
@@ -188,16 +226,18 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 2. Проверяет, что ОС — Debian или Ubuntu
 3. Проверяет аргументы запуска
 4. Запрашивает домен, порт ноды и `SECRET_KEY`
-5. Получает внешний IP сервера
-6. Проверяет A-запись домена
-7. Проверяет свободные порты
-8. Устанавливает зависимости
-9. Скачивает случайный шаблон сайта
-10. Выпускает сертификат Let's Encrypt через `http-01`
-11. Настраивает nginx для SelfSNI
-12. Устанавливает Docker и Docker Compose plugin
-13. Создаёт `docker-compose.yml`
-14. Запускает контейнер `remnawave/node`
+5. Определяет внешний IPv4-адрес сервера
+6. Устанавливает зависимости
+7. Проверяет A-запись домена
+8. Проверяет свободные порты
+9. Создаёт каталог webroot
+10. Скачивает кастомный `index.html` из репозитория GitHub
+11. Создаёт временный HTTP-конфиг nginx для `webroot`
+12. Выпускает сертификат Let's Encrypt через `HTTP-01`
+13. Применяет финальный nginx-конфиг для SelfSNI
+14. Устанавливает Docker и Compose plugin при необходимости
+15. Создаёт `docker-compose.yml`
+16. Запускает контейнер `remnawave/node`
 
 ---
 
@@ -205,6 +245,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 
 После завершения скрипт выводит:
 
+- домен
+- SelfSNI порт
+- порт ноды
 - путь к сертификату
 - путь к ключу
 - значение `Dest`
@@ -214,10 +257,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 Пример вывода:
 
 ```text
+Домен: example.com
+SelfSNI порт: 9000
+Порт ноды: 2272
 Сертификат: /etc/letsencrypt/live/example.com/fullchain.pem
 Ключ: /etc/letsencrypt/live/example.com/privkey.pem
-В качестве Dest укажите: 127.0.0.1:9000
-В качестве SNI укажите: example.com
+Dest: 127.0.0.1:9000
+SNI: example.com
 Docker compose: /opt/remnanode/docker-compose.yml
 ```
 
@@ -243,11 +289,25 @@ docker compose -f /opt/remnanode/docker-compose.yml logs -f remnanode
 nginx -t
 ```
 
+Проверить статус nginx:
+
+```bash
+systemctl status nginx
+```
+
 Проверить наличие сертификатов:
 
 ```bash
 ls -la /etc/letsencrypt/live/your-domain/
 ```
+
+Проверить таймер автообновления сертификатов:
+
+```bash
+systemctl status certbot.timer
+```
+
+> В Debian/Ubuntu пакет `certbot` обычно создаёт и активирует `systemd`-таймер для автоматического продления сертификатов.[web:34][web:31]
 
 ---
 
@@ -257,18 +317,49 @@ ls -la /etc/letsencrypt/live/your-domain/
 
 Если A-запись домена не совпадает с внешним IP сервера, скрипт завершится с ошибкой.
 
+### Не удалось скачать `index.html`
+
+Скрипт загружает заглушку напрямую с `raw.githubusercontent.com`, поэтому сервер должен иметь доступ к GitHub, а файл должен существовать по указанному пути.[web:33][web:36]
+
 ### Порт `443` занят
 
-Если порт `443` уже используется, выпуск сертификата и работа SelfSNI будут невозможны.
+Если порт `443` уже используется, установка будет остановлена.
 
-### Порт `80` занят
+### Порт SelfSNI занят
 
-В текущей версии скрипта сертификат выпускается через `http-01`, поэтому порт `80` должен быть свободен.
+Если указанный SelfSNI порт уже используется, скрипт завершится с ошибкой и попросит выбрать другой.
+
+### Порт ноды занят
+
+Если указанный `Node Port` уже используется, скрипт завершится с ошибкой.
+
+### Порт `80` недоступен
+
+В текущей версии сертификат выпускается через `HTTP-01 webroot`, поэтому порт `80/tcp` должен быть доступен для Let's Encrypt.
 
 ### Не работает `docker compose`
 
-На Debian и Ubuntu Compose v2 часто ставится как plugin для команды `docker compose`, поэтому иногда нужен отдельный пакет `docker-compose-plugin`.
+На Debian и Ubuntu Compose v2 обычно ставится как plugin для команды `docker compose`, поэтому при его отсутствии скрипт устанавливает пакет `docker-compose-plugin`.[web:32]
+
+### Nginx не принимает конфиг с `http2 on;`
+
+В текущей версии скрипта для совместимости с Debian 12 / nginx 1.22 используется синтаксис:
+
+```nginx
+listen 127.0.0.1:9000 ssl http2;
+```
+
+Это сделано специально для совместимости со старыми пакетами nginx, где директива `http2 on;` ещё не поддерживается.
 
 ### Нода не подключается к панели
 
 Проверьте, что при создании ноды в панели был указан тот же `Node Port`, который вы ввели в скрипте, и что `SECRET_KEY` был скопирован без изменений.
+
+---
+
+## Полезные ссылки
+
+- [Remnawave Docs](https://docs.rw/)
+- [remnawave/node](https://github.com/remnawave/node)
+- [Let's Encrypt](https://letsencrypt.org/)
+- [Certbot](https://certbot.eff.org/)
