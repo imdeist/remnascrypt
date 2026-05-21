@@ -1,12 +1,30 @@
 #!/bin/bash
 set -euo pipefail
 
+# ============================================
+# Настраиваемые переменные по умолчанию
+# ============================================
+
+# Порт, на котором nginx будет слушать локальный TLS для SelfSNI
 SPORT=9000
+
+# Порт RemnaNode по умолчанию
 NODE_PORT_DEFAULT=2272
+
+# Каталог, из которого nginx будет отдавать статические файлы
 WEBROOT_DIR="/var/www/remnascrypt"
+
+# Пути к конфигу nginx
 NGINX_SITE="/etc/nginx/sites-available/remnascrypt.conf"
 NGINX_SITE_LINK="/etc/nginx/sites-enabled/remnascrypt.conf"
 NGINX_DEFAULT_LINK="/etc/nginx/sites-enabled/default"
+
+# Ссылка на кастомную заглушку index.html в GitHub
+INDEX_HTML_URL="https://raw.githubusercontent.com/imdeist/remnascrypt/main/index.html"
+
+# ============================================
+# Разбор аргументов командной строки
+# ============================================
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -32,20 +50,31 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# ============================================
+# Базовые проверки
+# ============================================
+
+# Скрипт должен запускаться от root
 if [[ "$EUID" -ne 0 ]]; then
     echo "Ошибка: скрипт необходимо запускать от root."
     exit 1
 fi
 
+# Поддерживаются только Debian и Ubuntu
 if ! grep -E -q "^(ID=debian|ID=ubuntu)" /etc/os-release; then
     echo "Скрипт поддерживает только Debian или Ubuntu."
     exit 1
 fi
 
+# Проверяем корректность SelfSNI порта
 if ! [[ "$SPORT" =~ ^[0-9]+$ ]] || (( SPORT < 1 || SPORT > 65535 )); then
     echo "Ошибка: некорректный SelfSNI порт."
     exit 1
 fi
+
+# ============================================
+# Ввод параметров
+# ============================================
 
 read -r -p "Введите доменное имя: " DOMAIN
 if [[ -z "$DOMAIN" ]]; then
@@ -68,10 +97,15 @@ fi
 
 read -r -s -p "Введите SECRET_KEY для RemnaNode: " SECRET_KEY
 echo
+
 if [[ -z "$SECRET_KEY" ]]; then
     echo "SECRET_KEY не может быть пустым."
     exit 1
 fi
+
+# ============================================
+# Определение внешнего IP и установка пакетов
+# ============================================
 
 external_ip=$(curl -4 -s --max-time 5 https://api.ipify.org || true)
 if [[ -z "$external_ip" ]]; then
@@ -83,6 +117,10 @@ echo "Внешний IP сервера: $external_ip"
 
 apt update
 apt install -y curl nginx certbot git dnsutils ca-certificates gnupg lsb-release
+
+# ============================================
+# Проверка DNS
+# ============================================
 
 domain_ip=$(dig +short A "$DOMAIN" | tail -n1)
 if [[ -z "$domain_ip" ]]; then
@@ -98,6 +136,10 @@ if [[ "$domain_ip" != "$external_ip" ]]; then
 fi
 
 echo "A-запись домена $DOMAIN соответствует внешнему IP сервера."
+
+# ============================================
+# Проверка занятости портов
+# ============================================
 
 if ss -tuln | grep -q ":${SPORT} "; then
     echo "Порт SelfSNI ${SPORT} уже занят. Укажите другой порт."
@@ -120,26 +162,25 @@ if ss -tuln | grep -q ":443 "; then
     exit 1
 fi
 
-mkdir -p "$WEBROOT_DIR"
-cat > "$WEBROOT_DIR/index.html" <<'EOF'
-<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>OK</title>
-  <style>
-    body{font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f6f2;color:#28251d}
-    .box{padding:24px 28px;border:1px solid #d4d1ca;border-radius:16px;background:#f9f8f5;box-shadow:0 4px 12px rgba(0,0,0,.06)}
-  </style>
-</head>
-<body>
-  <div class="box">remnascrypt webroot is ready</div>
-</body>
-</html>
-EOF
+# ============================================
+# Подготовка webroot и загрузка кастомного index.html
+# ============================================
 
+mkdir -p "$WEBROOT_DIR"
+
+# Скачиваем кастомную заглушку из GitHub.
+# Если загрузка не удалась — завершаем выполнение с ошибкой.
+if ! curl -fsSL "$INDEX_HTML_URL" -o "$WEBROOT_DIR/index.html"; then
+    echo "Ошибка: не удалось скачать index.html из репозитория."
+    exit 1
+fi
+
+# Удаляем дефолтный сайт nginx, если он включён
 rm -f "$NGINX_DEFAULT_LINK" 2>/dev/null || true
+
+# ============================================
+# Временный HTTP-конфиг nginx для выпуска сертификата
+# ============================================
 
 cat > "$NGINX_SITE" <<EOF
 server {
@@ -166,8 +207,23 @@ ln -sf "$NGINX_SITE" "$NGINX_SITE_LINK"
 nginx -t
 systemctl restart nginx
 
+# ============================================
+# Выпуск Let's Encrypt сертификата через webroot
+# ============================================
+
 echo "Выпускаем сертификат через HTTP-01 webroot..."
 certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
+
+# ============================================
+# Финальный nginx-конфиг:
+# 1. HTTP -> HTTPS redirect
+# 2. TLS на локальном порту SelfSNI
+#
+# ВАЖНО:
+# Для совместимости с nginx 1.22.x (Debian 12) используем
+# старый синтаксис: listen ... ssl http2;
+# а НЕ 'http2 on;'
+# ============================================
 
 cat > "$NGINX_SITE" <<EOF
 server {
@@ -198,9 +254,11 @@ server {
 
     set_real_ip_from 127.0.0.1;
 
+    root $WEBROOT_DIR;
+    index index.html;
+
     location / {
-        root $WEBROOT_DIR;
-        index index.html;
+        try_files \$uri \$uri/ =404;
     }
 }
 EOF
@@ -208,10 +266,15 @@ EOF
 nginx -t
 systemctl restart nginx
 
+# ============================================
+# Установка Docker при отсутствии
+# ============================================
+
 if ! command -v docker >/dev/null 2>&1; then
     curl -fsSL https://get.docker.com | sh
 fi
 
+# Установка Docker Compose plugin при отсутствии
 if ! docker compose version >/dev/null 2>&1; then
     apt update
     apt install -y docker-compose-plugin
@@ -221,6 +284,10 @@ if ! docker compose version >/dev/null 2>&1; then
     echo "Ошибка: docker compose недоступен после установки."
     exit 1
 fi
+
+# ============================================
+# Подготовка docker-compose для RemnaNode
+# ============================================
 
 mkdir -p /opt/remnanode
 
@@ -247,6 +314,10 @@ EOF
 
 cd /opt/remnanode
 docker compose up -d
+
+# ============================================
+# Финальная информация
+# ============================================
 
 CERT_PATH="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
 KEY_PATH="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
