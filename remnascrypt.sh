@@ -198,7 +198,7 @@ server {
     set_real_ip_from 127.0.0.1;
     set_real_ip_from ::1;
 
-    root $WEBROOT_DI;
+    root $WEBROOT_DIR;
     index index.html;
 
     location / {
