@@ -1,10 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# ============================================
-# Настраиваемые переменные по умолчанию
-# ============================================
-
 # Порт, на котором nginx будет слушать локальный TLS для SelfSNI
 SPORT=9000
 
@@ -23,7 +19,6 @@ NGINX_DEFAULT_LINK="/etc/nginx/sites-enabled/default"
 INDEX_HTML_URL="https://raw.githubusercontent.com/imdeist/remnascrypt/main/index.html"
 
 # Разбор аргументов командной строки
-
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --selfsni-port)
@@ -67,7 +62,6 @@ if ! [[ "$SPORT" =~ ^[0-9]+$ ]] || (( SPORT < 1 || SPORT > 65535 )); then
 fi
 
 # Ввод параметров
-
 read -r -p "Введите доменное имя: " DOMAIN
 if [[ -z "$DOMAIN" ]]; then
     echo "Доменное имя не может быть пустым."
@@ -96,7 +90,6 @@ if [[ -z "$SECRET_KEY" ]]; then
 fi
 
 # Определение внешнего IP и установка пакетов
-
 external_ip=$(curl -4 -s --max-time 5 https://api.ipify.org || true)
 if [[ -z "$external_ip" ]]; then
     echo "Не удалось определить внешний IP сервера."
@@ -109,7 +102,6 @@ apt update
 apt install -y curl nginx certbot git dnsutils ca-certificates gnupg lsb-release
 
 # Проверка DNS
-
 domain_ip=$(dig +short A "$DOMAIN" | tail -n1)
 if [[ -z "$domain_ip" ]]; then
     echo "Не удалось получить A-запись для домена $DOMAIN."
@@ -126,7 +118,6 @@ fi
 echo "A-запись домена $DOMAIN соответствует внешнему IP сервера."
 
 # Проверка занятости портов
-
 if ss -tuln | grep -q ":${SPORT} "; then
     echo "Порт SelfSNI ${SPORT} уже занят. Укажите другой порт."
     exit 1
@@ -185,6 +176,7 @@ systemctl restart nginx
 echo "Выпускаем сертификат через HTTP-01 webroot..."
 certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
 
+#Добавление конечного NGINX конфига со всеми плюшками для vless reality
 cat > "$NGINX_SITE" <<EOF
 server {
     listen 127.0.0.1:$SPORT ssl http2 proxy_protocol;
@@ -218,10 +210,7 @@ EOF
 nginx -t
 systemctl restart nginx
 
-# ============================================
 # Установка Docker при отсутствии
-# ============================================
-
 if ! command -v docker >/dev/null 2>&1; then
     curl -fsSL https://get.docker.com | sh
 fi
@@ -237,10 +226,7 @@ if ! docker compose version >/dev/null 2>&1; then
     exit 1
 fi
 
-# ============================================
 # Подготовка docker-compose для RemnaNode
-# ============================================
-
 mkdir -p /opt/remnanode
 
 cat > /opt/remnanode/docker-compose.yml <<EOF
@@ -267,10 +253,7 @@ EOF
 cd /opt/remnanode
 docker compose up -d
 
-# ============================================
 # Финальная информация
-# ============================================
-
 CERT_PATH="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
 KEY_PATH="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
 
