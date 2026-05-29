@@ -21,6 +21,7 @@
 - выпускает сертификат Let's Encrypt через `certbot` по схеме `HTTP-01 webroot`
 - настраивает nginx для работы SelfSNI
 - создаёт `docker-compose.yml` для `remnawave/node`
+- оптимизирует скорость подключения
 - запускает контейнер ноды
 
 ---
