@@ -22,9 +22,7 @@ NGINX_DEFAULT_LINK="/etc/nginx/sites-enabled/default"
 # Ссылка на кастомную заглушку index.html в GitHub
 INDEX_HTML_URL="https://raw.githubusercontent.com/imdeist/remnascrypt/main/index.html"
 
-# ============================================
 # Разбор аргументов командной строки
-# ============================================
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -50,10 +48,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# ============================================
-# Базовые проверки
-# ============================================
-
 # Скрипт должен запускаться от root
 if [[ "$EUID" -ne 0 ]]; then
     echo "Ошибка: скрипт необходимо запускать от root."
@@ -72,9 +66,7 @@ if ! [[ "$SPORT" =~ ^[0-9]+$ ]] || (( SPORT < 1 || SPORT > 65535 )); then
     exit 1
 fi
 
-# ============================================
 # Ввод параметров
-# ============================================
 
 read -r -p "Введите доменное имя: " DOMAIN
 if [[ -z "$DOMAIN" ]]; then
@@ -103,9 +95,7 @@ if [[ -z "$SECRET_KEY" ]]; then
     exit 1
 fi
 
-# ============================================
 # Определение внешнего IP и установка пакетов
-# ============================================
 
 external_ip=$(curl -4 -s --max-time 5 https://api.ipify.org || true)
 if [[ -z "$external_ip" ]]; then
@@ -118,9 +108,7 @@ echo "Внешний IP сервера: $external_ip"
 apt update
 apt install -y curl nginx certbot git dnsutils ca-certificates gnupg lsb-release
 
-# ============================================
 # Проверка DNS
-# ============================================
 
 domain_ip=$(dig +short A "$DOMAIN" | tail -n1)
 if [[ -z "$domain_ip" ]]; then
@@ -137,9 +125,7 @@ fi
 
 echo "A-запись домена $DOMAIN соответствует внешнему IP сервера."
 
-# ============================================
 # Проверка занятости портов
-# ============================================
 
 if ss -tuln | grep -q ":${SPORT} "; then
     echo "Порт SelfSNI ${SPORT} уже занят. Укажите другой порт."
@@ -162,25 +148,14 @@ if ss -tuln | grep -q ":443 "; then
     exit 1
 fi
 
-# ============================================
-# Подготовка webroot и загрузка кастомного index.html
-# ============================================
-
 mkdir -p "$WEBROOT_DIR"
 
-# Скачиваем кастомную заглушку из GitHub.
-# Если загрузка не удалась — завершаем выполнение с ошибкой.
 if ! curl -fsSL "$INDEX_HTML_URL" -o "$WEBROOT_DIR/index.html"; then
     echo "Ошибка: не удалось скачать index.html из репозитория."
     exit 1
 fi
 
-# Удаляем дефолтный сайт nginx, если он включён
 rm -f "$NGINX_DEFAULT_LINK" 2>/dev/null || true
-
-# ============================================
-# Временный HTTP-конфиг nginx для выпуска сертификата
-# ============================================
 
 cat > "$NGINX_SITE" <<EOF
 server {
@@ -207,42 +182,12 @@ ln -sf "$NGINX_SITE" "$NGINX_SITE_LINK"
 nginx -t
 systemctl restart nginx
 
-# ============================================
-# Выпуск Let's Encrypt сертификата через webroot
-# ============================================
-
 echo "Выпускаем сертификат через HTTP-01 webroot..."
 certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
 
-# ============================================
-# Финальный nginx-конфиг:
-# 1. HTTP -> HTTPS redirect
-# 2. TLS на локальном порту SelfSNI
-#
-# ВАЖНО:
-# Для совместимости с nginx 1.22.x (Debian 12) используем
-# старый синтаксис: listen ... ssl http2;
-# а НЕ 'http2 on;'
-# ============================================
-
 cat > "$NGINX_SITE" <<EOF
 server {
-    listen 80;
-    listen [::]:80;
-    server_name $DOMAIN;
-
-    location /.well-known/acme-challenge/ {
-        root $WEBROOT_DIR;
-        allow all;
-    }
-
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-server {
-    listen 127.0.0.1:$SPORT ssl http2;
+    listen 127.0.0.1:$SPORT ssl http2 proxy_protocol;
     server_name $DOMAIN;
 
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
@@ -250,15 +195,22 @@ server {
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
-    ssl_ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
 
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305';
+    ssl_session_cache shared:SSL:1m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # Настройки Proxy Protocol
+    real_ip_header proxy_protocol;
     set_real_ip_from 127.0.0.1;
+    set_real_ip_from ::1;
 
-    root $WEBROOT_DIR;
+    root $WEBROOT_DI;
     index index.html;
 
     location / {
-        try_files \$uri \$uri/ =404;
+        try_files $uri $uri/ =404;
     }
 }
 EOF
