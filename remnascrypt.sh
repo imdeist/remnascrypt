@@ -253,6 +253,24 @@ EOF
 cd /opt/remnanode
 docker compose up -d
 
+cat > /etc/sysctl.d/99-vpn-optim.conf << EOF
+# VPN оптимизация - буферы 64MB
+net.core.rmem_max = 67108864
+net.core.wmem_max = 67108864
+
+# TCP буферы (min default max)
+net.ipv4.tcp_rmem = 4096 87380 67108864
+net.ipv4.tcp_wmem = 4096 65536 67108864
+
+# BBR + сетевые улучшения
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+net.core.netdev_max_backlog = 5000
+EOF
+
+# Применить
+sysctl -p /etc/sysctl.d/99-vpn-optim.conf
+
 # Финальная информация
 CERT_PATH="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
 KEY_PATH="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
