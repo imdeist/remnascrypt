@@ -128,6 +128,12 @@ if ss -tuln | grep -q ":${NODE_PORT} "; then
     exit 1
 fi
 
+if ss -tuln | grep -q ":80 "; then
+    echo "Порт 80 занят — это нормально, если его использует nginx."
+else
+    echo "Порт 80 свободен."
+fi
+
 if ss -tuln | grep -q ":443 "; then
     echo "Порт 443 занят. Освободите его перед запуском."
     exit 1
@@ -142,7 +148,6 @@ fi
 
 rm -f "$NGINX_DEFAULT_LINK" 2>/dev/null || true
 
-# Временный конфиг для Certbot
 cat > "$NGINX_SITE" <<EOF
 server {
     listen 80;
@@ -171,26 +176,18 @@ systemctl restart nginx
 echo "Выпускаем сертификат через HTTP-01 webroot..."
 certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
 
-# Конечный NGINX конфиг (сохраняем listen 80 для будущих продлений Certbot)
+# Добавление конечного NGINX конфига со всеми плюшками для vless reality
 cat > "$NGINX_SITE" <<EOF
 server {
     listen 80;
-    listen [::]:80;
     server_name $DOMAIN;
-
-    root $WEBROOT_DIR;
-    index index.html;
-
     location /.well-known/acme-challenge/ {
-        allow all;
-        try_files \$uri =404;
+        root $WEBROOT_DIR;
     }
-
     location / {
-        try_files \$uri \$uri/ =404;
+        return 301 https://$host$request_uri;
     }
 }
-
 server {
     listen 127.0.0.1:$SPORT ssl http2 proxy_protocol;
     server_name $DOMAIN;
@@ -281,8 +278,8 @@ net.core.default_qdisc = fq
 net.core.netdev_max_backlog = 5000
 EOF
 
-# Применить изменения (добавлен || true на случай контейнерной виртуализации)
-sysctl -p /etc/sysctl.d/99-vpn-optim.conf || true
+# Применить
+sysctl -p /etc/sysctl.d/99-vpn-optim.conf
 
 # Финальная информация
 CERT_PATH="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
