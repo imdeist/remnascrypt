@@ -17,13 +17,19 @@
 - определяет внешний IPv4-адрес сервера
 - проверяет A-запись домена и сравнивает её с внешним IP сервера
 - проверяет доступность портов `80`, `443`, порта SelfSNI и порта ноды
-- загружает кастомную заглушку `index.html` из репозитория GitHub
+- **предлагает на выбор визуальное оформление (лендинг)** для вашего сервера из динамической коллекции [capsite](https://github.com/imdeist/capsite)
 - выпускает сертификат Let's Encrypt через `certbot` по схеме `HTTP-01 webroot`
 - настраивает nginx для работы SelfSNI
 - **опционально устанавливает кастомное ядро Xray**
 - создаёт `docker-compose.yml` для `remnawave/node`
 - оптимизирует скорость подключения
 - запускает контейнер ноды
+
+---
+
+## Кастомизация внешнего вида
+
+При запуске скрипт автоматически подключается к [репозиторию с шаблонами](https://github.com/imdeist/capsite) и выводит список доступных визуальных оформлений (лендингов). Вы можете выбрать понравившийся вариант, и скрипт автоматически скачает и установит его как `index.html` на ваш сервер. Это позволяет брендировать ваш узел буквально в один клик.
 
 ---
 
@@ -62,7 +68,7 @@
 ## Быстрый запуск
 
 ```bash
-bash <(curl -fsSL [https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh](https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh))
+bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh)
 
 ```
 
@@ -84,7 +90,7 @@ bash <(curl -fsSL [https://raw.githubusercontent.com/imdeist/remnascrypt/main/re
 Пример:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh) --selfsni-port 9443
+bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh) --selfsni-port 8484
 
 ```
 
@@ -97,14 +103,15 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 1. **Доменное имя**
 2. **Порт для ноды RemnaNode**
 3. **SECRET_KEY** для ноды
-4. **Версия ядра Xray:** (оставьте поле пустым для использования стандартного ядра из образа, либо введите версию, например `26.5.9`, для установки кастомного).
+4. **Версия ядра Xray:** (оставьте поле пустым для использования стандартного ядра из образа, либо введите версию, например `26.5.9`).
+5. **Выбор дизайна:** номер из списка доступных шаблонов лендинга.
 
 ---
 
 ## Что устанавливается
 
 Скрипт устанавливает следующие компоненты:
-`curl`, `nginx`, `certbot`, `git`, `dnsutils`, `ca-certificates`, `gnupg`, `lsb-release`, `unzip`, а также `docker` и `docker-compose-plugin`.
+`curl`, `nginx`, `certbot`, `git`, `dnsutils`, `ca-certificates`, `gnupg`, `lsb-release`, `unzip`, `jq` (для обработки списка шаблонов), а также `docker` и `docker-compose-plugin`.
 
 ---
 
@@ -112,7 +119,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/rem
 
 После успешного выполнения будут созданы:
 
-* `/var/www/remnascrypt/` — webroot для сертификатов и заглушки
+* `/var/www/remnascrypt/` — webroot для сертификатов и выбранного лендинга
 * `/opt/remnanode/` — рабочая директория ноды
 * `/opt/remnanode/docker-compose.yml` — конфигурация контейнера
 * `/opt/remnanode/xray/` — (опционально) установленное ядро Xray
@@ -133,6 +140,10 @@ services:
     restart: always
     cap_add:
       - NET_ADMIN
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     environment:
       - NODE_PORT=2272
       - SECRET_KEY=your_secret_key
@@ -152,10 +163,11 @@ services:
 2. Ввод параметров и (опционально) загрузка версии Xray.
 3. Установка зависимостей.
 4. Проверка DNS и доступности портов.
-5. Настройка Nginx и выпуск сертификата через `certbot`.
-6. Установка Docker.
-7. Генерация `docker-compose.yml` и применение оптимизаций ядра (BBR).
-8. Запуск контейнера.
+5. **Выбор и загрузка дизайна лендинга.**
+6. Настройка Nginx и выпуск сертификата через `certbot`.
+7. Установка Docker.
+8. Генерация `docker-compose.yml` и применение оптимизаций ядра (BBR).
+9. Запуск контейнера.
 
 ---
 
@@ -196,5 +208,10 @@ docker exec remnanode /usr/local/bin/xray version
 
 * [Remnawave Docs](https://docs.rw/)
 * [remnawave/node](https://github.com/remnawave/node)
+* [Коллекция шаблонов Capsite](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/imdeist/capsite)
 * [Let's Encrypt](https://letsencrypt.org/)
 * [Certbot](https://certbot.eff.org/)
+
+```
+
+```
