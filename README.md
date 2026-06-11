@@ -1,32 +1,97 @@
+Понял вас. Я взял вашу **оригинальную версию** и органично встроил в неё новые пункты про выбор версии Xray и изменение структуры монтирования сертификатов.
+
+Ниже полный текст README в формате Markdown.
+
+```markdown
 # remnascrypt
 
-> Быстрый скрипт для установки SelfSNI, выпуска сертификатов Let's Encrypt и запуска `remnawave/node` на Debian/Ubuntu с возможностью обновления ядра Xray.
+> Быстрый скрипт для установки SelfSNI, выпуска сертификатов Let's Encrypt и запуска `remnawave/node` на Debian/Ubuntu.
 
-[Официальная документация Remnawave](https://docs.rw/)
-
+[Официальная документация Remnawave](https://docs.rw/)  
 [Репозиторий remnawave/node](https://github.com/remnawave/node)
-
----
-
-## Что нового (Xray Core)
-
-Теперь скрипт позволяет опционально установить кастомную версию ядра **Xray-core**. При запуске скрипт предложит ввести версию (например, `26.5.9`).
-
-* Если вы введете версию — скрипт скачает, распакует и пробросит это ядро в контейнер.
-* Если оставите поле пустым — будет использоваться стандартное ядро, встроенное в образ ноды.
 
 ---
 
 ## Описание
 
-Этот репозиторий содержит установочный скрипт `remnascrypt.sh`, который автоматизирует подготовку сервера:
+Этот репозиторий содержит установочный скрипт `remnascrypt.sh`.
 
-* Установка всех необходимых зависимостей (Docker, Nginx, Certbot).
-* Валидация домена и доступности портов.
-* Выпуск SSL-сертификатов Let's Encrypt (`HTTP-01` challenge).
-* Настройка Nginx с поддержкой Proxy Protocol для корректной работы с нодой.
-* Гибкая конфигурация `docker-compose.yml` (монтирование сертификатов и опциональное монтирование Xray).
-* Сетевая оптимизация (BBR).
+Скрипт автоматически:
+
+- устанавливает необходимые зависимости
+- определяет внешний IPv4-адрес сервера
+- проверяет A-запись домена и сравнивает её с внешним IP сервера
+- проверяет доступность портов `80`, `443`, порта SelfSNI и порта ноды
+- загружает кастомную заглушку `index.html` из репозитория GitHub
+- выпускает сертификат Let's Encrypt через `certbot` по схеме `HTTP-01 webroot`
+- настраивает nginx для работы SelfSNI
+- **опционально устанавливает кастомное ядро Xray**
+- создаёт `docker-compose.yml` для `remnawave/node`
+- оптимизирует скорость подключения
+- запускает контейнер ноды
+
+---
+
+## Перед установкой
+
+Перед запуском скрипта необходимо сначала создать новую ноду в панели Remnawave.
+
+В панели откройте:
+`Nodes` → `Management` → `+`
+
+При создании ноды укажите:
+
+- `IP/Domain` — IP-адрес сервера или домен сервера
+- `Node Port` — порт ноды, который вы позже укажете при запуске скрипта
+- `SECRET_KEY` — скопируйте из панели, он потребуется скрипту для запуска ноды
+
+После создания ноды сохраните `SECRET_KEY`.
+
+---
+
+## Требования
+
+Перед запуском убедитесь, что:
+
+- используется Debian или Ubuntu
+- домен уже направлен на IP вашего сервера через A-запись
+- порт `443` свободен
+- порт SelfSNI свободен, если вы указываете кастомный через `--selfsni-port`
+- выбранный порт ноды свободен
+- запуск выполняется от `root`
+- сервер имеет доступ в интернет
+- порт `80` доступен извне для прохождения проверки Let's Encrypt по `HTTP-01`
+
+---
+
+## Быстрый запуск
+
+```bash
+bash <(curl -fsSL [https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh](https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh))
+
+```
+
+---
+
+## Аргументы
+
+Скрипт поддерживает следующий рабочий аргумент:
+
+```bash
+--selfsni-port <порт>
+
+```
+
+### `--selfsni-port`
+
+Позволяет указать локальный порт SelfSNI (по умолчанию `9000`).
+
+Пример:
+
+```bash
+bash <(curl -fsSL [https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh](https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh)) --selfsni-port 8484
+
+```
 
 ---
 
@@ -34,58 +99,88 @@
 
 Во время выполнения скрипт запросит:
 
-1. **Доменное имя:** (A-запись должна указывать на IP сервера).
-2. **Порт для ноды RemnaNode:** (По умолчанию `2272`).
-3. **SECRET_KEY:** (Ключ, созданный в панели управления Remnawave).
-4. **Версия ядра xray:** (Оставьте поле пустым, если хотите использовать версию по умолчанию из образа).
-
----
-
-## Универсальное монтирование
-
-Для обеспечения работоспособности на любом домене, скрипт использует статическое монтирование сертификатов в `docker-compose.yml`:
-
-```yaml
-volumes:
-  - '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro'
-  - '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro'
-  - '/etc/letsencrypt/archive:/etc/letsencrypt/archive:ro'
-  # Дополнительно, если выбрана версия Xray:
-  - ./xray/xray:/usr/local/bin/xray
-
-```
-
-Это позволяет вам использовать одни и те же пути в настройках ноды вне зависимости от имени домена.
-
----
-
-## Быстрый запуск
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh)
-
-```
+1. **Доменное имя**
+2. **Порт для ноды RemnaNode**
+3. **SECRET_KEY** для ноды
+4. **Версия ядра Xray:** (оставьте поле пустым для использования стандартного ядра из образа, либо введите версию, например `26.5.9`, для установки кастомного).
 
 ---
 
 ## Что устанавливается
 
-* **Системные:** `curl`, `nginx`, `certbot`, `git`, `dnsutils`, `ca-certificates`, `gnupg`, `lsb-release`, `unzip`.
-* **Контейнеризация:** `docker`, `docker-compose-plugin`.
-* **Сеть:** Настройка `sysctl` для включения **BBR** и увеличения лимитов TCP-буферов.
+Скрипт устанавливает следующие компоненты:
+`curl`, `nginx`, `certbot`, `git`, `dnsutils`, `ca-certificates`, `gnupg`, `lsb-release`, `unzip`, а также `docker` и `docker-compose-plugin`.
+
+---
+
+## Что создаёт и использует скрипт
+
+После успешного выполнения будут созданы:
+
+* `/var/www/remnascrypt/` — webroot для сертификатов и заглушки
+* `/opt/remnanode/` — рабочая директория ноды
+* `/opt/remnanode/docker-compose.yml` — конфигурация контейнера
+* `/opt/remnanode/xray/` — (опционально) установленное ядро Xray
+
+---
+
+## Пример `docker-compose.yml`
+
+Скрипт формирует файл с универсальным монтированием сертификатов и (если выбрано) ядра Xray:
+
+```yaml
+services:
+  remnanode:
+    container_name: remnanode
+    hostname: remnanode
+    image: remnawave/node:latest
+    network_mode: host
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - NODE_PORT=2272
+      - SECRET_KEY=your_secret_key
+    volumes:
+      - '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro'
+      - '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro'
+      - '/etc/letsencrypt/archive:/etc/letsencrypt/archive:ro'
+      - ./xray/xray:/usr/local/bin/xray
+
+```
+
+---
+
+## Что делает скрипт по шагам
+
+1. Проверка `root` и ОС.
+2. Ввод параметров и (опционально) загрузка версии Xray.
+3. Установка зависимостей.
+4. Проверка DNS и доступности портов.
+5. Настройка Nginx и выпуск сертификата через `certbot`.
+6. Установка Docker.
+7. Генерация `docker-compose.yml` и применение оптимизаций ядра (BBR).
+8. Запуск контейнера.
 
 ---
 
 ## Проверка после установки
 
-Посмотреть логи ноды:
+Проверить контейнер:
+
+```bash
+docker ps | grep remnanode
+
+```
+
+Посмотреть логи:
 
 ```bash
 docker compose -f /opt/remnanode/docker-compose.yml logs -f remnanode
 
 ```
 
-Проверить версию Xray внутри контейнера (если вы её монтировали):
+Проверить версию Xray (если устанавливали):
 
 ```bash
 docker exec remnanode /usr/local/bin/xray version
@@ -94,8 +189,21 @@ docker exec remnanode /usr/local/bin/xray version
 
 ---
 
+## Возможные проблемы
+
+* **Домен не указывает на сервер:** Скрипт завершится с ошибкой.
+* **Порты заняты:** Если 443 или указанные порты заняты, установка прервется.
+* **Нода не подключается:** Убедитесь, что `SECRET_KEY` верный, а `Node Port` соответствует настройкам в панели Remnawave.
+
+---
+
 ## Полезные ссылки
 
 * [Remnawave Docs](https://docs.rw/)
-* [Xray-core Releases](https://github.com/XTLS/Xray-core/releases)
+* [remnawave/node](https://github.com/remnawave/node)
 * [Let's Encrypt](https://letsencrypt.org/)
+* [Certbot](https://certbot.eff.org/)
+
+```
+
+```
