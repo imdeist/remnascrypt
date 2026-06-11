@@ -84,7 +84,7 @@ bash <(curl -fsSL [https://raw.githubusercontent.com/imdeist/remnascrypt/main/re
 Пример:
 
 ```bash
-bash <(curl -fsSL [https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh](https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh)) --selfsni-port 8484
+bash <(curl -fsSL https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh) --selfsni-port 9443
 
 ```
 
