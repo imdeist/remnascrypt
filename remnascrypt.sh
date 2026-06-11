@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Порт, на котором nginx будет слушать локальный TLS для SelfSNI
-SPORT=9000
+SPORT_DEFAULT=9000
 
 # Порт RemnaNode по умолчанию
 NODE_PORT_DEFAULT=2272
@@ -15,7 +15,7 @@ NGINX_SITE="/etc/nginx/sites-available/remnascrypt.conf"
 NGINX_SITE_LINK="/etc/nginx/sites-enabled/remnascrypt.conf"
 NGINX_DEFAULT_LINK="/etc/nginx/sites-enabled/default"
 
-# Ссылка на кастомную заглушку index.html в GitHub (для fallback, если нужно)
+# Ссылка на кастомную заглушку index.html в GitHub
 INDEX_HTML_URL="https://raw.githubusercontent.com/imdeist/capsite/main/caps/service_superlight_1.html"
 
 # Функция выбора заглушки
@@ -59,7 +59,7 @@ select_xray_version() {
     # ПРОВЕРКА И УСТАНОВКА jq, если он еще не установлен
     if ! command -v jq &> /dev/null; then
         echo "Установка зависимостей для выбора версий..."
-        apt-get update -qq && apt-get install -y jq
+        apt update -qq && apt install -y jq
     fi
 
     local API_URL="https://api.github.com/repos/XTLS/Xray-core/releases"
@@ -108,30 +108,6 @@ select_xray_version() {
         echo "Выбрана версия: $selected_tag"
     fi
 }
-# Разбор аргументов командной строки
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --selfsni-port)
-            if [[ -n "${2:-}" && "$2" =~ ^[0-9]+$ ]]; then
-                SPORT="$2"
-                shift 2
-            else
-                echo "Ошибка: укажите корректный порт после аргумента --selfsni-port."
-                exit 1
-            fi
-            ;;
-        --without-80)
-            echo "Ошибка: режим --without-80 в этом скрипте отключён."
-            echo "Причина: выпуск сертификата реализован через webroot и требует обычного HTTP-01 доступа по 80/tcp."
-            exit 1
-            ;;
-        *)
-            echo "Неизвестный аргумент: $1"
-            echo "Использование: $0 [--selfsni-port <порт>]"
-            exit 1
-            ;;
-    esac
-done
 
 # Скрипт должен запускаться от root
 if [[ "$EUID" -ne 0 ]]; then
@@ -151,6 +127,9 @@ if [[ -z "$DOMAIN" ]]; then
     echo "Доменное имя не может быть пустым."
     exit 1
 fi
+
+read -r -p "Введите порт для SelfSNI [${SPORT_DEFAULT}]: " SPORT
+SPORT="${SPORT:-$SPORT_DEFAULT}"
 
 read -r -p "Введите порт для ноды RemnaNode [${NODE_PORT_DEFAULT}]: " NODE_PORT
 NODE_PORT="${NODE_PORT:-$NODE_PORT_DEFAULT}"
@@ -217,7 +196,7 @@ if ss -tuln | grep -q ":443 "; then
     exit 1
 fi
 
-# Логика Xray (вставка)
+# Логика Xray
 XRAY_VOLUME=""
 if [[ -n "$XRAY_VERSION" ]]; then
     mkdir -p /opt/remnanode/xray
@@ -232,7 +211,6 @@ if [[ -n "$XRAY_VERSION" ]]; then
 fi
 
 mkdir -p "$WEBROOT_DIR"
-# Вызов функции выбора вместо старого curl
 select_template
 rm -f "$NGINX_DEFAULT_LINK" 2>/dev/null || true
 
