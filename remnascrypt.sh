@@ -15,8 +15,43 @@ NGINX_SITE="/etc/nginx/sites-available/remnascrypt.conf"
 NGINX_SITE_LINK="/etc/nginx/sites-enabled/remnascrypt.conf"
 NGINX_DEFAULT_LINK="/etc/nginx/sites-enabled/default"
 
-# Ссылка на кастомную заглушку index.html в GitHub
-INDEX_HTML_URL="https://raw.githubusercontent.com/imdeist/remnascrypt/main/index.html"
+# Ссылка на кастомную заглушку index.html в GitHub (для fallback, если нужно)
+INDEX_HTML_URL="https://raw.githubusercontent.com/imdeist/capsite/main/caps/service_superlight_1.html"
+
+# Функция выбора заглушки
+select_template() {
+    local API_URL="https://api.github.com/repos/imdeist/capsite/contents/caps"
+    local RAW_URL="https://raw.githubusercontent.com/imdeist/capsite/main/caps"
+    
+    echo "Получение списка шаблонов из репозитория..."
+    local files_json
+    files_json=$(curl -s "$API_URL")
+    
+    # Парсим имена файлов (.html)
+    mapfile -t templates < <(echo "$files_json" | jq -r '.[].name' | grep ".html" | sort -V)
+    
+    if [ ${#templates[@]} -eq 0 ]; then
+        echo "Шаблоны не найдены, использую стандартный index.html."
+        curl -fsSL "$INDEX_HTML_URL" -o "$WEBROOT_DIR/index.html"
+        return
+    fi
+
+    echo "Доступные шаблоны:"
+    for i in "${!templates[@]}"; do
+        echo "$((i+1))) ${templates[$i]}"
+    done
+
+    read -r -p "Выберите номер шаблона [1-${#templates[@]}]: " choice
+    
+    if [[ ! "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#templates[@]}" ]; then
+        echo "Неверный выбор. Установлен шаблон по умолчанию."
+        curl -fsSL "$INDEX_HTML_URL" -o "$WEBROOT_DIR/index.html"
+    else
+        local selected_file="${templates[$choice-1]}"
+        echo "Скачивание $selected_file..."
+        curl -fsSL "$RAW_URL/$selected_file" -o "$WEBROOT_DIR/index.html"
+    fi
+}
 
 # Разбор аргументов командной строки
 while [[ $# -gt 0 ]]; do
@@ -95,7 +130,7 @@ fi
 echo "Внешний IP сервера: $external_ip"
 
 apt update
-apt install -y curl nginx certbot git dnsutils ca-certificates gnupg lsb-release unzip
+apt install -y curl nginx certbot git dnsutils ca-certificates gnupg lsb-release unzip jq
 
 # Проверка DNS
 domain_ip=$(dig +short A "$DOMAIN" | tail -n1)
@@ -142,7 +177,8 @@ if [[ -n "$XRAY_VERSION" ]]; then
 fi
 
 mkdir -p "$WEBROOT_DIR"
-curl -fsSL "$INDEX_HTML_URL" -o "$WEBROOT_DIR/index.html"
+# Вызов функции выбора вместо старого curl
+select_template
 rm -f "$NGINX_DEFAULT_LINK" 2>/dev/null || true
 
 # Настройка Nginx (HTTP)
