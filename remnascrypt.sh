@@ -36,6 +36,7 @@ select_template() {
         return
     fi
 
+    echo
     echo "Доступные шаблоны: https://github.com/imdeist/capsite"
     for i in "${!templates[@]}"; do
         echo "$((i+1))) ${templates[$i]}"
@@ -53,6 +54,67 @@ select_template() {
     fi
 }
 
+# Функция выбора версии Xray с определением статуса
+select_xray_version() {
+    local API_URL="https://api.github.com/repos/XTLS/Xray-core/releases"
+    
+    echo "Получение списка версий Xray..."
+    local releases_json
+    releases_json=$(curl -s --max-time 10 "$API_URL")
+    
+    if [[ -z "$releases_json" ]] || [[ "$releases_json" == "[]" ]]; then
+        echo "Не удалось получить список версий."
+        XRAY_VERSION=""
+        return
+    fi
+    
+    # Парсим последние 10 версий: tag_name и статус prerelease
+    # Формат строки в массиве: "tag|prerelease" (например: "v24.1.0|false")
+    mapfile -t versions < <(echo "$releases_json" | jq -r '.[0:10] | .[] | "\(.tag_name)|\(.prerelease)"' 2>/dev/null)
+    
+    if [ ${#versions[@]} -eq 0 ]; then
+        XRAY_VERSION=""
+        return
+    fi
+
+    echo
+    echo "Доступные версии Xray: https://github.com/XTLS/Xray-core/releases"
+    for i in "${!versions[@]}"; do
+        # Разбиваем строку по разделителю |
+        IFS='|' read -r tag is_pre <<< "${versions[$i]}"
+        
+        local label=""
+        # Проверяем статус через API GitHub
+        if [[ "$is_pre" == "true" ]]; then
+            label=" [BETA/RC]"
+        else
+            label=" [STABLE]"
+        fi
+        
+        # Помечаем самый свежий релиз
+        [[ $i -eq 0 ]] && label="$label (Latest)"
+        
+        echo "$((i+1))) $tag $label"
+    done
+    echo "0) Пропустить (использовать стандартное ядро)"
+    echo
+
+    read -r -p "Выберите номер версии [0-${#versions[@]}]: " choice
+    
+    if [[ ! "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 0 ] || [ "$choice" -gt "${#versions[@]}" ]; then
+        echo "Неверный ввод, пропускаю установку кастомного Xray."
+        XRAY_VERSION=""
+    elif [ "$choice" -eq 0 ]; then
+        echo "Установка кастомного Xray пропущена."
+        XRAY_VERSION=""
+    else
+        # Достаем только тег из выбранной строки (отрезаем |status)
+        IFS='|' read -r selected_tag _ <<< "${versions[$choice-1]}"
+        # Удаляем 'v' для ссылки скачивания
+        XRAY_VERSION="${selected_tag#v}"
+        echo "Выбрана версия: $selected_tag"
+    fi
+}
 # Разбор аргументов командной строки
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -117,8 +179,8 @@ if [[ -z "$SECRET_KEY" ]]; then
     echo "SECRET_KEY не может быть пустым."
     exit 1
 fi
-echo "Посмотреть доступные версии ядра: https://github.com/XTLS/Xray-core/releases"
-read -r -p "Версия ядра xray (оставьте поле пустым для пропуска): " XRAY_VERSION
+echo
+select_xray_version
 
 # Определение внешнего IP и установка пакетов
 external_ip=$(curl -4 -s --max-time 5 https://api.ipify.org || true)
