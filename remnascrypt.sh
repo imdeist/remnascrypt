@@ -56,6 +56,12 @@ select_template() {
 
 # Функция выбора версии Xray с определением статуса
 select_xray_version() {
+    # ПРОВЕРКА И УСТАНОВКА jq, если он еще не установлен
+    if ! command -v jq &> /dev/null; then
+        echo "Установка зависимостей для выбора версий..."
+        apt-get update -qq && apt-get install -y jq
+    fi
+
     local API_URL="https://api.github.com/repos/XTLS/Xray-core/releases"
     
     echo "Получение списка версий Xray..."
@@ -68,8 +74,7 @@ select_xray_version() {
         return
     fi
     
-    # Парсим последние 10 версий: tag_name и статус prerelease
-    # Формат строки в массиве: "tag|prerelease" (например: "v24.1.0|false")
+    # Парсим последние 10 версий
     mapfile -t versions < <(echo "$releases_json" | jq -r '.[0:10] | .[] | "\(.tag_name)|\(.prerelease)"' 2>/dev/null)
     
     if [ ${#versions[@]} -eq 0 ]; then
@@ -80,20 +85,10 @@ select_xray_version() {
     echo
     echo "Доступные версии Xray: https://github.com/XTLS/Xray-core/releases"
     for i in "${!versions[@]}"; do
-        # Разбиваем строку по разделителю |
         IFS='|' read -r tag is_pre <<< "${versions[$i]}"
-        
         local label=""
-        # Проверяем статус через API GitHub
-        if [[ "$is_pre" == "true" ]]; then
-            label=" [BETA/RC]"
-        else
-            label=" [STABLE]"
-        fi
-        
-        # Помечаем самый свежий релиз
+        [[ "$is_pre" == "true" ]] && label=" [BETA/RC]" || label=" [STABLE]"
         [[ $i -eq 0 ]] && label="$label (Latest)"
-        
         echo "$((i+1))) $tag $label"
     done
     echo "0) Пропустить (использовать стандартное ядро)"
@@ -108,9 +103,7 @@ select_xray_version() {
         echo "Установка кастомного Xray пропущена."
         XRAY_VERSION=""
     else
-        # Достаем только тег из выбранной строки (отрезаем |status)
         IFS='|' read -r selected_tag _ <<< "${versions[$choice-1]}"
-        # Удаляем 'v' для ссылки скачивания
         XRAY_VERSION="${selected_tag#v}"
         echo "Выбрана версия: $selected_tag"
     fi
