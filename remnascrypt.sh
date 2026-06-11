@@ -133,6 +133,7 @@ if [[ -n "$XRAY_VERSION" ]]; then
     mkdir -p /opt/remnanode/xray
     if curl -L "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-64.zip" -o /tmp/xray.zip; then
         unzip -o /tmp/xray.zip -d /opt/remnanode/xray
+        chmod +x /opt/remnanode/xray/xray
         rm /tmp/xray.zip
         if [[ -f "/opt/remnanode/xray/xray" ]]; then
             XRAY_VOLUME="- ./xray/xray:/usr/local/bin/xray"
@@ -224,11 +225,19 @@ services:
       - '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro'
       - '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro'
       - '/etc/letsencrypt/archive:/etc/letsencrypt/archive:ro'
-      $XRAY_VOLUME
 EOF
 
+if [[ -n "$XRAY_VERSION" ]]; then
+    echo "      - ./xray/xray:/usr/local/bin/xray" >> /opt/remnanode/docker-compose.yml
+fi
+
 cd /opt/remnanode
-docker compose up -d
+if docker compose up -d; then
+    echo "Контейнер успешно запущен."
+else
+    echo "Ошибка при запуске контейнера. Проверьте логи."
+    exit 1
+fi
 
 # Оптимизация
 cat > /etc/sysctl.d/99-vpn-optim.conf << EOF
