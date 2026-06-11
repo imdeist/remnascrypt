@@ -198,7 +198,3 @@ docker exec remnanode /usr/local/bin/xray version
 * [remnawave/node](https://github.com/remnawave/node)
 * [Let's Encrypt](https://letsencrypt.org/)
 * [Certbot](https://certbot.eff.org/)
-
-```
-
-```
