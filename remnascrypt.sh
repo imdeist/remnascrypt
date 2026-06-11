@@ -36,7 +36,7 @@ select_template() {
         return
     fi
 
-    echo "Доступные шаблоны:"
+    echo "Доступные шаблоны: https://github.com/imdeist/capsite"
     for i in "${!templates[@]}"; do
         echo "$((i+1))) ${templates[$i]}"
     done
@@ -117,7 +117,7 @@ if [[ -z "$SECRET_KEY" ]]; then
     echo "SECRET_KEY не может быть пустым."
     exit 1
 fi
-
+echo "Посмотреть доступные версии ядра: https://github.com/XTLS/Xray-core/releases"
 read -r -p "Версия ядра xray (оставьте поле пустым для пропуска): " XRAY_VERSION
 
 # Определение внешнего IP и установка пакетов
