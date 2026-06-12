@@ -53,7 +53,6 @@ check_deps() {
     
     # Отключаем интерактивные запросы apt (чтобы установка не зависала)
     export DEBIAN_FRONTEND=noninteractive
-    
     for dep in "${deps[@]}"; do
         if ! command -v "$dep" &> /dev/null; then
             echo -e "   ${DIM}Установка пакета: $dep...${RESET}"
@@ -85,6 +84,8 @@ uninstall_all() {
     if [[ "$confirm" != "y" ]]; then warn "Процесс удаления отменен."; sleep 1.5; return; fi
 
     info "Запущен процесс полной очистки сервера..."
+    
+    # Жесткое отключение интерактивных запросов apt
     export DEBIAN_FRONTEND=noninteractive
 
     # Шаг 1: Остановка и полное удаление Docker
@@ -342,7 +343,7 @@ EOF
     ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf
     systemctl restart nginx >/dev/null 2>&1
     
-    # Выпуск бесплатного SSL-сертификата Let's Encrypt
+    # 3. Вызов Certbot для генерации сертификата
     info "Генерация действительного SSL сертификата (Certbot)..."
     certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
@@ -351,7 +352,7 @@ EOF
     fi
     success "SSL-сертификаты успешно получены и активированы!"
     
-    # 3. Боевой отказоустойчивый конфиг Nginx (Сайт на 443 + Нода)
+    # 4. Формирование боевого конфига Nginx (Сайт висит на 443, Нода проксируется)
     info "Развертывание финальной конфигурации Nginx..."
     cat > "$NGINX_SITE" <<EOF
 # Перенаправление HTTP -> HTTPS
@@ -388,7 +389,7 @@ server {
 EOF
     systemctl restart nginx >/dev/null 2>&1
     
-    # 4. Генерация манифеста Docker Compose
+    # 5. Разворачивание Docker окружения
     info "Сборка контейнера Remnascrypt через Docker Compose..."
     cat > "$CONFIG_FILE" <<EOF
 services:
@@ -407,7 +408,7 @@ services:
 EOF
     cd "$DIR" && docker compose up -d >/dev/null 2>&1
     
-    # 5. Пропись глобальных алиасов управления в системе
+    # 6. Запись системных ярлыков для быстрого вызова утилиты
     info "Создание глобальных команд вызова менеджера..."
     curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh" >/dev/null 2>&1
     chmod +x "$DIR/remnascrypt.sh"
