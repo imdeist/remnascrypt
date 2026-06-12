@@ -252,6 +252,7 @@ install_process() {
     draw_banner
     info "Инициализация мастера первичной установки"
     
+    # Сбор стартовых данных
     read -r -p "🌐 Введите целевой домен: " DOMAIN
     read -r -p "🚪 Порт SelfSNI [9000]: " SPORT; SPORT="${SPORT:-9000}"
     read -r -p "⚙️  Порт ноды [2272]: " NODE_PORT; NODE_PORT="${NODE_PORT:-2272}"
@@ -259,69 +260,97 @@ install_process() {
     
     echo ""
     check_deps
+    
     mkdir -p "$DIR" "$WEBROOT_DIR"
     
-    info "Конфигурация временного веб-сервера..."
+    # 1. Заглушка веб-сервера для верификации домена Certbot'ом
+    info "Конфигурация временного веб-сервера для SSL проверки..."
     cat > "$NGINX_SITE" <<EOF
 server {
-    listen 80;
-    server_name $DOMAIN;
-    root $WEBROOT_DIR;
+    listen 80; server_name $DOMAIN; root $WEBROOT_DIR;
     location /.well-known/acme-challenge/ { allow all; }
     location / { return 301 https://\$host\$request_uri; }
 }
 EOF
-    systemctl restart nginx
-
-    info "Генерация SSL сертификата..."
-    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
+    ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf
+    systemctl restart nginx &>/dev/null
     
+    # Выпуск бесплатного SSL-сертификата Let's Encrypt
+    info "Генерация действительного SSL сертификата (Certbot)..."
+    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        error "Критическая ошибка выпуска SSL. Проверьте статус DNS A-записи домена!"
+        exit 1
+    fi
+    success "SSL-сертификаты успешно получены и активированы!"
+    
+    # 2. Боевой отказоустойчивый конфиг Nginx (Сайт на 443 + Нода)
     info "Развертывание финальной конфигурации Nginx..."
     cat > "$NGINX_SITE" <<EOF
+# Перенаправление HTTP -> HTTPS
 server {
-    listen 80;
-    server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
+    listen 80; server_name $DOMAIN; root $WEBROOT_DIR;
+    location /.well-known/acme-challenge/ { allow all; }
+    location / { return 301 https://\$host\$request_uri; }
 }
+
+# Основной сайт-заглушка на порту 443
 server {
     listen 443 ssl http2;
+    server_name $DOMAIN;
+    root $WEBROOT_DIR;
+    
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    location / { try_files \$uri \$uri/ =404; }
+}
+
+# Защищенный локальный прокси-порт для ноды
+server {
+    listen 127.0.0.1:$SPORT ssl http2 proxy_protocol;
     server_name $DOMAIN;
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
-    root $WEBROOT_DIR;
-    location / {
-        proxy_pass http://127.0.0.1:$SPORT;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-    }
+    real_ip_header proxy_protocol; set_real_ip_from 127.0.0.1;
+    
+    location / { return 404; }
 }
 EOF
-    systemctl restart nginx
+    systemctl restart nginx &>/dev/null
     
-    info "Создание docker-compose.yml..."
+    # 3. Генерация манифеста Docker Compose
+    info "Сборка контейнера Remnascrypt через Docker Compose..."
     cat > "$CONFIG_FILE" <<EOF
 services:
   remnascrypt:
-    image: remnawave/node:latest
     container_name: remnascrypt
+    image: remnawave/node:latest
+    network_mode: host
     restart: always
+    cap_add: [NET_ADMIN]
     environment:
       - NODE_PORT=$NODE_PORT
       - SECRET_KEY=$SECRET_KEY
     volumes:
-      - ./xray:/usr/local/bin/xray
-    network_mode: host
+      - '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro'
+      - '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro'
 EOF
+    cd "$DIR" && docker compose up -d &>/dev/null
     
-    # Завершающие настройки
-    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh"
+    # 4. Пропись глобальных алиасов управления в системе
+    info "Создание глобальных команд вызова менеджера..."
+    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh" &>/dev/null
     chmod +x "$DIR/remnascrypt.sh"
     echo -e "#!/bin/bash\nbash $DIR/remnascrypt.sh" > "$DIR/run.sh"
     chmod +x "$DIR/run.sh"
     ln -sf "$DIR/run.sh" "$SCRIPT_PATH"
     
-    success "УСТАНОВКА ЗАВЕРШЕНА! Команда: remnascrypt"
+    echo ""
+    success "ПРОЦЕСС УСТАНОВКИ УСПЕШНО ЗАВЕРШЕН!"
+    echo -e "Вызывайте панель управления из любой точки системы командой: ${CYAN}${BOLD}remnascrypt${RESET}"
     exit 0
 }
 # ==========================================
