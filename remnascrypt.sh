@@ -217,8 +217,22 @@ show_info() {
     info "Анализ конфигурации и статуса служб..."
     
     local domain=$(grep -oP "live/\K[^/]+" "$CONFIG_FILE" | head -1 || echo "Не найден")
-    local node_ver=$(docker inspect remnascrypt --format '{{.Config.Image}}' 2>/dev/null | cut -d: -f2 || echo "Unknown")
-    local xray_ver=$(docker exec remnascrypt xray -version 2>/dev/null | head -n 1 | awk '{print $3}' || echo "Не найдено")
+    
+    # --- УМНЫЙ ПОИСК ВЕРСИИ REMNANODE ---
+    local node_ver=""
+    local pkg_ver=$(docker exec remnascrypt sh -c 'cat /app/package.json 2>/dev/null || cat package.json 2>/dev/null' | grep -m 1 '"version":' | awk -F'"' '{print $4}')
+    
+    if [[ -n "$pkg_ver" ]]; then
+        node_ver="v$pkg_ver"
+    else
+        local build_date=$(docker inspect remnascrypt --format '{{.Created}}' 2>/dev/null | cut -d'T' -f1)
+        [[ -n "$build_date" ]] && node_ver="build $build_date" || node_ver="Unknown"
+    fi
+    
+    # --- УМНЫЙ ПОИСК ВЕРСИИ XRAY ---
+    local raw_xray=$(docker exec remnascrypt xray -version 2>/dev/null | head -n 1 | awk '{print $2}')
+    local xray_ver=$([[ -n "$raw_xray" ]] && echo "v$raw_xray" || echo "Не найдено")
+    
     local port_sni=$(grep -oP 'listen 127.0.0.1:\K\d+' "$NGINX_SITE" 2>/dev/null || echo "Не найден")
     local port_node=$(grep -oP 'NODE_PORT=\K\d+' "$CONFIG_FILE" 2>/dev/null || echo "Не найден")
     local status_docker=$(docker inspect -f '{{.State.Running}}' remnascrypt 2>/dev/null)
