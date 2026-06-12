@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# --- КОНФИГУРАЦИЯ ---
+REPO_URL="https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh"
+
 # --- ЦВЕТА И ЭСТЕТИКА ---
 ESC="\033["
 RESET="${ESC}0m"
@@ -99,7 +102,7 @@ install_process() {
     apt update && apt install -y curl nginx certbot git dnsutils jq unzip
     mkdir -p "$DIR" "$WEBROOT_DIR"
     
-    # 1. СНАЧАЛА БАЗОВЫЙ NGINX (только HTTP)
+    # 1. Nginx (HTTP)
     cat > "$NGINX_SITE" <<EOF
 server {
     listen 80;
@@ -112,11 +115,11 @@ EOF
     ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf
     systemctl restart nginx
     
-    # 2. ПОЛУЧАЕМ СЕРТИФИКАТ (теперь Nginx работает, порт 80 открыт)
+    # 2. Сертификат
     log "Получаю SSL сертификат..."
     certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
     
-    # 3. ТЕПЕРЬ ПЕРЕЗАПИСЫВАЕМ NGINX НА HTTPS
+    # 3. Nginx (HTTPS)
     cat > "$NGINX_SITE" <<EOF
 server {
     listen 80; server_name $DOMAIN; root $WEBROOT_DIR;
@@ -154,14 +157,16 @@ services:
 EOF
     cd "$DIR" && docker compose up -d
     
-    # Персистентность команды
+    # 5. ПЕРСИСТЕНТНОСТЬ (Скачиваем файл с GitHub, а не копируем $0)
+    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh"
+    chmod +x "$DIR/remnascrypt.sh"
+    
     cat > "$DIR/run.sh" <<EOF
 #!/bin/bash
 bash $DIR/remnascrypt.sh
 EOF
     chmod +x "$DIR/run.sh"
     ln -sf "$DIR/run.sh" "$SCRIPT_PATH"
-    cp "$0" "$DIR/remnascrypt.sh"
     
     echo -e "\n${GREEN}✅ УСТАНОВКА ЗАВЕРШЕНА!${RESET}"
     echo -e "Теперь пиши ${BOLD}remnascrypt${RESET} в консоли."
