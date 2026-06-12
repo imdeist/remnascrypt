@@ -91,19 +91,30 @@ select_xray_version() {
 }
 
 show_info() {
-    local domain=$(grep -oP '(?<=/etc/letsencrypt/live/)[^/]+' "$CONFIG_FILE" 2>/dev/null || echo "Не найдено")
+    # Корректный парсинг домена через grep (ищем путь live/DOMAIN/)
+    local domain=$(grep -oP "live/\K[^/]+" "$CONFIG_FILE" | head -1 || echo "Не найдено")
+    
+    # Получение версий
+    local node_ver=$(docker inspect remnascrypt --format '{{.Config.Image}}' 2>/dev/null | cut -d: -f2 || echo "Unknown")
+    local xray_ver=$(/usr/local/bin/xray -version 2>&1 | head -n 1 | awk '{print $3}' || echo "Не найдено")
+    
+    # Статусы
     local port_sni=$(grep -oP 'listen 127.0.0.1:\K\d+' "$NGINX_SITE" 2>/dev/null || echo "Не найдено")
     local port_node=$(grep -oP 'NODE_PORT=\K\d+' "$CONFIG_FILE" 2>/dev/null || echo "Не найдено")
     local status_docker=$(docker inspect -f '{{.State.Running}}' remnascrypt 2>/dev/null)
     local status_nginx=$(systemctl is-active nginx)
 
-    echo -e "\n${PURPLE}=== СТАТУС НОДЫ (ПОДРОБНО) ===${RESET}"
-    echo -e "🌐 Домен:        ${CYAN}$domain${RESET}"
-    echo -e "🚪 SelfSNI порт: ${YELLOW}$port_sni${RESET}"
-    echo -e "⚙️ Порт ноды:    ${YELLOW}$port_node${RESET}"
-    echo -e "🐳 Docker:       $( [[ "$status_docker" == "true" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${RED}ОСТАНОВЛЕН${RESET}" )"
-    echo -e "🌐 Nginx:        $( [[ "$status_nginx" == "active" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${RED}ОСТАНОВЛЕН${RESET}" )"
-    read -n 1 -s -r -p "Нажми любую кнопку..."
+    echo -e "\n${PURPLE}=== СТАТУС НОДЫ ===${RESET}"
+    printf "%-18s %s\n" "🌐 Домен:" "$domain"
+    printf "%-18s %s\n" "📦 Remnanode:" "$node_ver"
+    printf "%-18s %s\n" "⚡ Xray Core:" "$xray_ver"
+    printf "%-18s %s\n" "🚪 SelfSNI порт:" "$port_sni"
+    printf "%-18s %s\n" "⚙️ Порт ноды:" "$port_node"
+    echo -e "🐳 Docker:        $( [[ "$status_docker" == "true" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${RED}ОСТАНОВЛЕН${RESET}" )"
+    echo -e "🌐 Nginx:         $( [[ "$status_nginx" == "active" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${RED}ОСТАНОВЛЕН${RESET}" )"
+    
+    echo -e "\n-----------------------------------"
+    read -n 1 -s -r -p "Нажми любую кнопку для возврата..."
 }
 
 install_process() {
