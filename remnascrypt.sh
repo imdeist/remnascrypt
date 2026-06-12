@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# ==========================================
-# КОНФИГУРАЦИЯ И СИСТЕМНЫЕ ПУТИ
-# ==========================================
-REPO_URL="https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh"
-DIR="/opt/remnascrypt"
-WEBROOT_DIR="/var/www/remnascrypt"
-NGINX_SITE="/etc/nginx/sites-available/remnascrypt.conf"
-CONFIG_FILE="$DIR/docker-compose.yml"
-SCRIPT_PATH="/usr/local/bin/remnascrypt"
+# ==============================================================================
+# REMNASCRYPT MANAGER v2.0
+# Автоматизированный скрипт для развертывания и управления нодой
+# ==============================================================================
 
-# ==========================================
-# ЦВЕТА И ЭСТЕТИКА (Строгий стандарт $'\033...')
-# ==========================================
+# --- КОНФИГУРАЦИЯ И СИСТЕМНЫЕ ПУТИ ---
+REPO_URL="https://raw.githubusercontent.com/imdeist/remnascrypt/main/remnascrypt.sh"
+DIR="/opt/remnascrypt"                                 # Основная директория ноды
+WEBROOT_DIR="/var/www/remnascrypt"                     # Директория для фейк-сайта
+NGINX_SITE="/etc/nginx/sites-available/remnascrypt.conf" # Конфиг веб-сервера
+CONFIG_FILE="$DIR/docker-compose.yml"                  # Конфиг Docker-контейнера
+SCRIPT_PATH="/usr/local/bin/remnascrypt"               # Путь для системной команды
+
+# --- ЦВЕТА И ЭСТЕТИКА (ANSI Escape-коды) ---
 RESET=$'\033[0m'
 BOLD=$'\033[1m'
 DIM=$'\033[2m'
@@ -24,15 +25,15 @@ MAGENTA=$'\033[35m'
 CYAN=$'\033[36m'
 WHITE=$'\033[37m'
 
-# ==========================================
-# ФУНКЦИИ ВЫВОДА ЛОГОВ
-# ==========================================
+# --- ФУНКЦИИ ВЫВОДА ЛОГОВ ---
+# Используются для красивого и единообразного информирования пользователя
 info() { echo -e "${CYAN}➜ ${RESET}${BOLD}$1${RESET}"; }
 success() { echo -e "${GREEN}✔ ${RESET}${BOLD}$1${RESET}"; }
 warn() { echo -e "${YELLOW}⚠ ${RESET}${BOLD}$1${RESET}"; }
 error() { echo -e "${RED}✖ ${RESET}${BOLD}$1${RESET}"; }
 
-# Отрисовка шапки скрипта (ширина подогнана строго под 52 символа рамки)
+# --- ОТРИСОВКА ЗАГОЛОВКА ---
+# Очищает экран и рисует шапку шириной ровно 52 символа
 draw_banner() {
     clear
     echo -e "${MAGENTA}${BOLD}╭────────────────────────────────────────────────────╮"
@@ -41,15 +42,18 @@ draw_banner() {
     echo -e "╰────────────────────────────────────────────────────╯${RESET}"
 }
 
-# ==========================================
-# БЛОК УСТАНОВКИ И ЗАВИСИМОСТЕЙ
-# ==========================================
+# ==============================================================================
+# СИСТЕМНЫЕ ФУНКЦИИ И УТИЛИТЫ
+# ==============================================================================
 
+# Проверка и тихая установка всех необходимых пакетов
 check_deps() {
     local deps=(curl nginx certbot git jq unzip wget)
     info "Проверка системных зависимостей..."
     
+    # Отключаем интерактивные запросы apt (чтобы установка не зависала)
     export DEBIAN_FRONTEND=noninteractive
+    
     for dep in "${deps[@]}"; do
         if ! command -v "$dep" &> /dev/null; then
             echo -e "   ${DIM}Установка пакета: $dep...${RESET}"
@@ -58,6 +62,7 @@ check_deps() {
         fi
     done
 
+    # Если Docker не установлен, качаем и запускаем официальный скрипт
     if ! command -v docker &> /dev/null; then
         echo -e "   ${DIM}Установка Docker Engine...${RESET}"
         curl -fsSL https://get.docker.com | bash >/dev/null 2>&1
@@ -65,6 +70,7 @@ check_deps() {
     success "Все зависимости успешно проверены и установлены!"
 }
 
+# Функция полного и безвозвратного удаления скрипта и его следов
 uninstall_all() {
     draw_banner
     echo -e "${RED}${BOLD}⚠️  ВНИМАНИЕ: АБСОЛЮТНОЕ УДАЛЕНИЕ СИСТЕМЫ ⚠️${RESET}"
@@ -79,10 +85,9 @@ uninstall_all() {
     if [[ "$confirm" != "y" ]]; then warn "Процесс удаления отменен."; sleep 1.5; return; fi
 
     info "Запущен процесс полной очистки сервера..."
-    
-    # Жесткое отключение интерактивных запросов apt
     export DEBIAN_FRONTEND=noninteractive
 
+    # Шаг 1: Остановка и полное удаление Docker
     if command -v docker &> /dev/null; then
         echo -e "   ${DIM}Остановка контейнеров и удаление Docker...${RESET}"
         if [[ -n "$(docker ps -aq 2>/dev/null)" ]]; then
@@ -92,22 +97,24 @@ uninstall_all() {
         rm -rf /var/lib/docker /var/lib/containerd /etc/docker ~/.docker
     fi
 
+    # Шаг 2: Удаление Nginx
     echo -e "   ${DIM}Удаление веб-сервера Nginx...${RESET}"
     systemctl stop nginx >/dev/null 2>&1
     apt-get purge -yq nginx nginx-common nginx-full </dev/null>/dev/null 2>&1
     rm -rf /etc/nginx /var/www/remnascrypt /var/log/nginx
 
+    # Шаг 3: Удаление Certbot
     echo -e "   ${DIM}Удаление Certbot и SSL-сертификатов...${RESET}"
     apt-get purge -yq certbot python3-certbot-nginx </dev/null>/dev/null 2>&1
     rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
 
+    # Шаг 4: Зачистка файловой системы и алиасов
     echo -e "   ${DIM}Удаление локальных файлов и системных ярлыков...${RESET}"
-    # Уничтожение директорий
     rm -rf "$DIR" "$WEBROOT_DIR"
-    # Прямое удаление всех возможных алиасов и симлинков
     rm -f "/usr/local/bin/remnascrypt" "/usr/bin/remnascrypt" "/bin/remnascrypt"
     rm -f "/usr/local/bin/run.sh" "$SCRIPT_PATH"
 
+    # Шаг 5: Очистка кэша APT
     echo -e "   ${DIM}Финальная оптимизация системы...${RESET}"
     apt-get autoremove -yq </dev/null>/dev/null 2>&1
     apt-get autoclean -yq </dev/null>/dev/null 2>&1
@@ -116,18 +123,21 @@ uninstall_all() {
     exit 0
 }
 
-# ==========================================
-# БЛОК РАБОТЫ С ЯДРОМ И СТАТУСОМ
-# ==========================================
+# ==============================================================================
+# УПРАВЛЕНИЕ КОМПОНЕНТАМИ НОДЫ
+# ==============================================================================
 
+# Обновление ядра Xray через API GitHub
 select_xray_version() {
     draw_banner
     check_deps
     info "Запрос актуальных версий Xray с серверов GitHub..."
     
+    # Запрос к API с таймаутом 10 секунд на случай падения сети
     local releases_json=$(curl -s --max-time 10 "https://api.github.com/repos/XTLS/Xray-core/releases")
     if [[ -z "$releases_json" ]]; then error "Ошибка сети или лимит запросов к GitHub API."; sleep 2; return; fi
     
+    # Парсим JSON через jq: достаем 10 последних релизов (тег и флаг беты)
     mapfile -t versions < <(echo "$releases_json" | jq -r '.[0:10] | .[] | "\(.tag_name)|\(.prerelease)"')
     
     echo -e "\n${BOLD}Доступные версии для установки:${RESET}"
@@ -135,7 +145,7 @@ select_xray_version() {
         IFS='|' read -r tag pre <<< "${versions[$i]}"
         local status="${GREEN}[STABLE]${RESET}"
         [[ "$pre" == "true" ]] && status="${YELLOW}[BETA]  ${RESET}"
-        printf "  %-2s %s %s\n" "$((i+1)))" "$status" "$tag"
+        printf "  %-2s %-10s %s\n" "$((i+1)))" "$tag" "$status"
     done
     
     echo ""
@@ -145,20 +155,24 @@ select_xray_version() {
     IFS='|' read -r tag pre <<< "${versions[$choice-1]}"
     info "Скачивание и интеграция ядра $tag..."
 
+    # Удаляем старое ядро и скачиваем выбранный zip-архив
     rm -rf "$DIR/xray"
     mkdir -p "$DIR/xray"
     curl -sL "https://github.com/XTLS/Xray-core/releases/download/${tag}/Xray-linux-64.zip" -o /tmp/xray.zip
     unzip -q -o /tmp/xray.zip -d "$DIR/xray" && chmod +x "$DIR/xray/xray" && rm /tmp/xray.zip
     
+    # Если проброса volume в докере еще нет — добавляем его
     if ! grep -q "\./xray/xray" "$CONFIG_FILE"; then
         sed -i '/volumes:/a \      - ./xray/xray:/usr/local/bin/xray' "$CONFIG_FILE"
     fi
     
-    cd "$DIR" && docker compose down && docker compose up -d >/dev/null 2>&1
+    # Применяем изменения
+    cd "$DIR" && docker compose down >/dev/null 2>&1 && docker compose up -d >/dev/null 2>&1
     success "Ядро Xray успешно обновлено до версии $tag!"
     sleep 2
 }
 
+# Загрузка и установка кастомных HTML-шаблонов для маскировки (фейк-сайт)
 select_template() {
     draw_banner
     info "Запрос доступных шаблонов из репозитория capsite..."
@@ -173,6 +187,7 @@ select_template() {
         return
     fi
 
+    # Фильтруем только файлы с расширением .html
     mapfile -t templates < <(echo "$files_json" | jq -r '.[]?.name' | grep "\.html$" | sort -V)
     
     if [ ${#templates[@]} -eq 0 ]; then
@@ -188,9 +203,7 @@ select_template() {
     
     echo ""
     read -r -p "Выберите номер [1-${#templates[@]}] (0 - отмена): " choice
-    
     if [[ "$choice" -eq 0 ]]; then return; fi
-    
     if [[ ! "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#templates[@]}" ]; then
         warn "Неверный выбор. Отмена операции."
         sleep 1.5
@@ -200,7 +213,7 @@ select_template() {
     local selected_file="${templates[$choice-1]}"
     info "Загрузка и установка шаблона: $selected_file..."
     
-    # Очистка старых html файлов в папке веб-сервера
+    # Очищаем папку от старых шаблонов, не трогая скрытые директории Nginx
     find "$WEBROOT_DIR" -maxdepth 1 -name "*.html" -delete
     
     if curl -fsSL "$RAW_URL/$selected_file" -o "$WEBROOT_DIR/index.html"; then
@@ -212,13 +225,19 @@ select_template() {
     sleep 2
 }
 
+# ==============================================================================
+# ПАНЕЛЬ ИНФОРМАЦИИ (ДАШБОРД)
+# ==============================================================================
+
 show_info() {
     draw_banner
     info "Анализ конфигурации и статуса служб..."
     
+    # Извлечение домена из пути сертификата
     local domain=$(grep -oP "live/\K[^/]+" "$CONFIG_FILE" | head -1 || echo "Не найден")
     
-    # --- УМНЫЙ ПОИСК ВЕРСИИ REMNANODE ---
+    # --- ИНТЕЛЛЕКТУАЛЬНЫЙ ПОИСК ВЕРСИЙ ---
+    # Поиск версии Remnanode внутри package.json, если не найден — берем дату билда
     local node_ver=""
     local pkg_ver=$(docker exec remnascrypt sh -c 'cat /app/package.json 2>/dev/null || cat package.json 2>/dev/null' | grep -m 1 '"version":' | awk -F'"' '{print $4}')
     
@@ -229,10 +248,11 @@ show_info() {
         [[ -n "$build_date" ]] && node_ver="build $build_date" || node_ver="Unknown"
     fi
     
-    # --- УМНЫЙ ПОИСК ВЕРСИИ XRAY ---
+    # Поиск версии Xray (извлечение второго аргумента из строки xray -version)
     local raw_xray=$(docker exec remnascrypt xray -version 2>/dev/null | head -n 1 | awk '{print $2}')
     local xray_ver=$([[ -n "$raw_xray" ]] && echo "v$raw_xray" || echo "Не найдено")
     
+    # Сбор портов и статусов
     local port_sni=$(grep -oP 'listen 127.0.0.1:\K\d+' "$NGINX_SITE" 2>/dev/null || echo "Не найден")
     local port_node=$(grep -oP 'NODE_PORT=\K\d+' "$CONFIG_FILE" 2>/dev/null || echo "Не найден")
     local status_docker=$(docker inspect -f '{{.State.Running}}' remnascrypt 2>/dev/null)
@@ -244,6 +264,7 @@ show_info() {
     local txt_nginx=$([[ "$status_nginx" == "active" ]] && echo "РАБОТАЕТ" || echo "ОСТАНОВЛЕН")
     local clr_nginx=$([[ "$status_nginx" == "active" ]] && echo "$GREEN" || echo "$RED")
 
+    # Математика: вычисляем динамическое количество пробелов для идеальной рамки (Ширина - Длина_Слова)
     local pad_1=$((30 - ${#domain}))
     local pad_2=$((30 - ${#node_ver}))
     local pad_3=$((30 - ${#xray_ver}))
@@ -252,6 +273,7 @@ show_info() {
     local pad_6=$((30 - ${#txt_docker}))
     local pad_7=$((30 - ${#txt_nginx}))
 
+    # Отрисовка
     clear
     draw_banner
     echo -e "${CYAN}╭────────────────────────────────────────────────────╮${RESET}"
@@ -260,7 +282,7 @@ show_info() {
     printf "${CYAN}│${RESET} ⚡ Xray Core:       %s%*s ${CYAN}│${RESET}\n" "$xray_ver" "$pad_3" ""
     echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
     printf "${CYAN}│${RESET} 🚪 SelfSNI Порт:    ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_sni" "$pad_4" ""
-    printf "${CYAN}│${RESET} ⚙️  Порт ноды:       ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_node" "$pad_5" ""
+    printf "${CYAN}│${RESET} ⚙️  Порт ноды:      ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_node" "$pad_5" ""
     echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
     printf "${CYAN}│${RESET} 🐳 Docker:          %s%s${RESET}%*s ${CYAN}│${RESET}\n" "$clr_docker" "$txt_docker" "$pad_6" ""
     printf "${CYAN}│${RESET} 🌐 Nginx:           %s%s${RESET}%*s ${CYAN}│${RESET}\n" "$clr_nginx" "$txt_nginx" "$pad_7" ""
@@ -270,9 +292,9 @@ show_info() {
     read -n 1 -s -r -p "Нажмите любую клавишу для возврата в меню..."
 }
 
-# ==========================================
-# БЛОК ПЕРВИЧНОЙ УСТАНОВКИ
-# ==========================================
+# ==============================================================================
+# ПРОЦЕСС ПЕРВИЧНОЙ УСТАНОВКИ
+# ==============================================================================
 
 install_process() {
     draw_banner
@@ -288,8 +310,27 @@ install_process() {
     check_deps
     
     mkdir -p "$DIR" "$WEBROOT_DIR"
+
+    # 1. Оптимизация сети (BBR и TCP буферы)
+    info "Оптимизация сетевого стека ядра (BBR, TCP буферы)..."
+    cat > /etc/sysctl.d/99-vpn-optim.conf <<EOF
+# VPN оптимизация - буферы 64MB
+net.core.rmem_max = 67108864
+net.core.wmem_max = 67108864
+
+# TCP буферы (min default max)
+net.ipv4.tcp_rmem = 4096 87380 67108864
+net.ipv4.tcp_wmem = 4096 65536 67108864
+
+# BBR + сетевые улучшения
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+net.core.netdev_max_backlog = 5000
+EOF
+    sysctl -p /etc/sysctl.d/99-vpn-optim.conf >/dev/null 2>&1
+    success "Сетевые параметры ядра оптимизированы!"
     
-    # 1. Заглушка веб-сервера для верификации домена Certbot'ом
+    # 2. Заглушка веб-сервера для верификации домена Certbot'ом
     info "Конфигурация временного веб-сервера для SSL проверки..."
     cat > "$NGINX_SITE" <<EOF
 server {
@@ -299,18 +340,18 @@ server {
 }
 EOF
     ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf
-    systemctl restart nginx &>/dev/null
+    systemctl restart nginx >/dev/null 2>&1
     
     # Выпуск бесплатного SSL-сертификата Let's Encrypt
     info "Генерация действительного SSL сертификата (Certbot)..."
-    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive &>/dev/null
+    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
         error "Критическая ошибка выпуска SSL. Проверьте статус DNS A-записи домена!"
         exit 1
     fi
     success "SSL-сертификаты успешно получены и активированы!"
     
-    # 2. Боевой отказоустойчивый конфиг Nginx (Сайт на 443 + Нода)
+    # 3. Боевой отказоустойчивый конфиг Nginx (Сайт на 443 + Нода)
     info "Развертывание финальной конфигурации Nginx..."
     cat > "$NGINX_SITE" <<EOF
 # Перенаправление HTTP -> HTTPS
@@ -345,9 +386,9 @@ server {
     location / { return 404; }
 }
 EOF
-    systemctl restart nginx &>/dev/null
+    systemctl restart nginx >/dev/null 2>&1
     
-    # 3. Генерация манифеста Docker Compose
+    # 4. Генерация манифеста Docker Compose
     info "Сборка контейнера Remnascrypt через Docker Compose..."
     cat > "$CONFIG_FILE" <<EOF
 services:
@@ -364,11 +405,11 @@ services:
       - '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro'
       - '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro'
 EOF
-    cd "$DIR" && docker compose up -d &>/dev/null
+    cd "$DIR" && docker compose up -d >/dev/null 2>&1
     
-    # 4. Пропись глобальных алиасов управления в системе
+    # 5. Пропись глобальных алиасов управления в системе
     info "Создание глобальных команд вызова менеджера..."
-    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh" &>/dev/null
+    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh" >/dev/null 2>&1
     chmod +x "$DIR/remnascrypt.sh"
     echo -e "#!/bin/bash\nbash $DIR/remnascrypt.sh" > "$DIR/run.sh"
     chmod +x "$DIR/run.sh"
@@ -379,24 +420,25 @@ EOF
     echo -e "Вызывайте панель управления из любой точки системы командой: ${CYAN}${BOLD}remnascrypt${RESET}"
     exit 0
 }
-# ==========================================
-# ГЛАВНОЕ МЕНЮ (Точка входа)
-# ==========================================
+
+# ==============================================================================
+# ГЛАВНОЕ МЕНЮ (МАРШРУТИЗАЦИЯ)
+# ==============================================================================
 
 main_menu() {
     while true; do
         draw_banner
         echo -e "${CYAN}╭────────────────────────────────────────────────────╮${RESET}"
-        echo -e "${CYAN}│${RESET}  1) 📊 Статус                                      ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  2) ⚡ Обновить ядро Xray                          ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  3) 🔄 Перезагрузить Docker                        ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  4) 🚪 Изменить SelfSNI порт                       ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  5) ⚙️  Изменить порт ноды                          ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  6) 🔑 Изменить SECRET_KEY                         ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  7) 🌐 Выбрать cap                                 ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  1) 📊 Статус                                     ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  2) ⚡ Обновить ядро Xray                         ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  3) 🔄 Перезагрузить Docker                       ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  4) 🚪 Изменить SelfSNI порт                      ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  5) ⚙️  Изменить порт ноды                        ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  6) 🔑 Изменить SECRET_KEY                        ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  7) 🌐 Выбрать cap                                ${CYAN}│${RESET}"
         echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
-        echo -e "${CYAN}│${RESET}  8) 🗑️  Удалить                                     ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  9) 🚪 Выход                                       ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  8) ${RED}🗑️  Удалить${RESET}                                     ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  9) 🚪 Выход                                      ${CYAN}│${RESET}"
         echo -e "${CYAN}╰────────────────────────────────────────────────────╯\n${RESET}"
         read -r -p " Выберите действие [1-9]: " act
 
@@ -412,6 +454,7 @@ main_menu() {
             4) 
                 draw_banner
                 read -r -p " Введите новый порт SelfSNI: " NP
+                # Regex проверяет, что введены строго цифры
                 if [[ "$NP" =~ ^[0-9]+$ ]]; then
                     sed -i "s/listen 127.0.0.1:[0-9]\+/listen 127.0.0.1:$NP/" "$NGINX_SITE"
                     systemctl restart nginx >/dev/null 2>&1
@@ -449,11 +492,17 @@ main_menu() {
     done
 }
 
+# ==============================================================================
+# ТОЧКА ВХОДА
+# ==============================================================================
+
+# Защита от запуска без прав суперпользователя
 if [[ "$EUID" -ne 0 ]]; then 
     echo -e "${RED}✖ Ошибка: Этот скрипт требует привилегий суперпользователя (root). Запустите через sudo.${RESET}"
     exit 1
 fi
 
+# Базовая маршрутизация: если конфиг существует — открываем меню, иначе — ставим с нуля
 if [[ -f "$CONFIG_FILE" ]]; then 
     main_menu
 else 
