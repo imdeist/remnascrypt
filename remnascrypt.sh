@@ -193,14 +193,18 @@ main_menu() {
     while true; do
         clear
         echo -e "${PURPLE}=== REMNASCRYPT MANAGER ===${RESET}"
-        echo "1) 📊 Статус (подробно)"
-        echo "2) ⚡ Обновить ядро Xray"
-        echo "3) 🔄 Перезагрузить Docker"
-        echo "4) 🚪 Изменить SelfSNI порт"
-        echo "5) ⚙️ Изменить порт ноды"
-        echo "6) 🔑 Изменить SECRET_KEY"
-        echo "7) 🗑️ УДАЛИТЬ ВСЁ"
-        echo "8) 🚪 Выход"
+        # Используем printf для фиксации ширины
+        # %-3s — номер пункта (ширина 3 символа, выравнивание влево)
+        # %s  — текст пункта
+        printf "%-3s %s\n" "1)" "📊 Статус (подробно)"
+        printf "%-3s %s\n" "2)" "⚡ Обновить ядро Xray"
+        printf "%-3s %s\n" "3)" "🔄 Перезагрузить Docker"
+        printf "%-3s %s\n" "4)" "🚪 Изменить SelfSNI порт"
+        printf "%-3s %s\n" "5)" "⚙️ Изменить порт ноды"
+        printf "%-3s %s\n" "6)" "🔑 Изменить SECRET_KEY"
+        printf "%-3s %s\n" "7)" "🗑️ УДАЛИТЬ ВСЁ"
+        printf "%-3s %s\n" "8)" "🚪 Выход"
+        
         read -r -p "Выбор: " act
         case "$act" in
             1) show_info ;;
