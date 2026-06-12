@@ -227,18 +227,17 @@ show_info() {
     local pad_7=$((30 - ${#txt_nginx}))
 
     clear
-    echo -e "${CYAN}╭────────────────────────────────────────────────────╮"
-    echo -e "│             ${BOLD}С Т А Т У С   С И С Т Е М Ы${RESET}${CYAN}            │"
-    echo -e "├────────────────────────────────────────────────────┤${RESET}"
-    printf "│ 🌐 Домен:           ${BOLD}%s${RESET}%*s │\n" "$domain" "$pad_1" ""
-    printf "│ 📦 Remnanode:       %s%*s │\n" "$node_ver" "$pad_2" ""
-    printf "│ ⚡ Xray Core:       %s%*s │\n" "$xray_ver" "$pad_3" ""
+    draw_banner
+    echo -e "${CYAN}╭────────────────────────────────────────────────────╮${RESET}"
+    printf "${CYAN}│${RESET} 🌐 Домен:           ${BOLD}%s${RESET}%*s ${CYAN}│${RESET}\n" "$domain" "$pad_1" ""
+    printf "${CYAN}│${RESET} 📦 Remnanode:       %s%*s ${CYAN}│${RESET}\n" "$node_ver" "$pad_2" ""
+    printf "${CYAN}│${RESET} ⚡ Xray Core:       %s%*s ${CYAN}│${RESET}\n" "$xray_ver" "$pad_3" ""
     echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
-    printf "│ 🚪 SelfSNI Порт:    ${YELLOW}%s${RESET}%*s │\n" "$port_sni" "$pad_4" ""
-    printf "│ ⚙️  Порт ноды:      ${YELLOW}%s${RESET}%*s │\n" "$port_node" "$pad_5" ""
+    printf "${CYAN}│${RESET} 🚪 SelfSNI Порт:    ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_sni" "$pad_4" ""
+    printf "${CYAN}│${RESET} ⚙️  Порт ноды:       ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_node" "$pad_5" ""
     echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
-    printf "│ 🐳 Docker:          %s%s${RESET}%*s │\n" "$clr_docker" "$txt_docker" "$pad_6" ""
-    printf "│ 🌐 Nginx:           %s%s${RESET}%*s │\n" "$clr_nginx" "$txt_nginx" "$pad_7" ""
+    printf "${CYAN}│${RESET} 🐳 Docker:          %s%s${RESET}%*s ${CYAN}│${RESET}\n" "$clr_docker" "$txt_docker" "$pad_6" ""
+    printf "${CYAN}│${RESET} 🌐 Nginx:           %s%s${RESET}%*s ${CYAN}│${RESET}\n" "$clr_nginx" "$txt_nginx" "$pad_7" ""
     echo -e "${CYAN}╰────────────────────────────────────────────────────╯${RESET}"
     
     echo ""
