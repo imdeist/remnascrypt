@@ -99,7 +99,24 @@ install_process() {
     apt update && apt install -y curl nginx certbot git dnsutils jq unzip
     mkdir -p "$DIR" "$WEBROOT_DIR"
     
-    # Nginx конфиг
+    # 1. СНАЧАЛА БАЗОВЫЙ NGINX (только HTTP)
+    cat > "$NGINX_SITE" <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    root $WEBROOT_DIR;
+    location /.well-known/acme-challenge/ { allow all; }
+    location / { return 301 https://\$host\$request_uri; }
+}
+EOF
+    ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf
+    systemctl restart nginx
+    
+    # 2. ПОЛУЧАЕМ СЕРТИФИКАТ (теперь Nginx работает, порт 80 открыт)
+    log "Получаю SSL сертификат..."
+    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
+    
+    # 3. ТЕПЕРЬ ПЕРЕЗАПИСЫВАЕМ NGINX НА HTTPS
     cat > "$NGINX_SITE" <<EOF
 server {
     listen 80; server_name $DOMAIN; root $WEBROOT_DIR;
@@ -116,12 +133,9 @@ server {
     root $WEBROOT_DIR; location / { try_files \$uri \$uri/ =404; }
 }
 EOF
-    ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf
-    systemctl restart nginx
-    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
     systemctl restart nginx
     
-    # Docker
+    # 4. Docker
     if ! command -v docker >/dev/null 2>&1; then curl -fsSL https://get.docker.com | sh; fi
     cat > "$CONFIG_FILE" <<EOF
 services:
