@@ -166,13 +166,29 @@ EOF
     log "Получаю SSL сертификат..."
     certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
     
-    # 2. Финальный конфиг Nginx с SSL
+    # 2. Финальный конфиг Nginx
     cat > "$NGINX_SITE" <<EOF
+# Редирект с HTTP на HTTPS
 server {
     listen 80; server_name $DOMAIN; root $WEBROOT_DIR;
     location /.well-known/acme-challenge/ { allow all; }
     location / { return 301 https://\$host\$request_uri; }
 }
+
+# Сайт на порту 443
+server {
+    listen 443 ssl http2;
+    server_name $DOMAIN;
+    root $WEBROOT_DIR;
+    
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    location / { try_files \$uri \$uri/ =404; }
+}
+
+# Нода на своем порту
 server {
     listen 127.0.0.1:$SPORT ssl http2 proxy_protocol;
     server_name $DOMAIN;
@@ -180,7 +196,8 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     real_ip_header proxy_protocol; set_real_ip_from 127.0.0.1;
-    root $WEBROOT_DIR; location / { try_files \$uri \$uri/ =404; }
+    
+    location / { return 404; }
 }
 EOF
     systemctl restart nginx
@@ -235,9 +252,9 @@ main_menu() {
             2) select_xray_version ;;
             3) docker compose -f "$CONFIG_FILE" up -d && log "Docker перечитал конфиги!" ;;
             4) 
-                read -r -p "Новый порт: " NP
+                read -r -p "Новый порт (в nginx listen): " NP
                 if [[ "$NP" =~ ^[0-9]+$ ]]; then
-                    sed -i "s/listen 127.0.0.1:[0-9]\+/listen 127.0.0.1:$NP/" "$NGINX_SITE" && systemctl restart nginx && log "Порт изменен"
+                    sed -i "s/listen [0-9]\+ ssl/listen $NP ssl/" "$NGINX_SITE" && systemctl restart nginx && log "Порт обновлен"
                 else warn "Только цифры!"; fi ;;
             5) 
                 read -r -p "Новый порт: " NP
