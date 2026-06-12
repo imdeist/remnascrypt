@@ -118,9 +118,9 @@ show_info() {
     # Корректный парсинг домена через grep (ищем путь live/DOMAIN/)
     local domain=$(grep -oP "live/\K[^/]+" "$CONFIG_FILE" | head -1 || echo "Не найдено")
     
-    # Получение версий
+    # Получение версий (Xray запрашивается изнутри работающего контейнера)
     local node_ver=$(docker inspect remnascrypt --format '{{.Config.Image}}' 2>/dev/null | cut -d: -f2 || echo "Unknown")
-    local xray_ver=$(/usr/local/bin/xray -version 2>&1 | head -n 1 | awk '{print $3}' || echo "Не найдено")
+    local xray_ver=$(docker exec remnascrypt xray -version 2>/dev/null | head -n 1 | awk '{print $3}' || echo "Не найдено")
     
     # Статусы
     local port_sni=$(grep -oP 'listen 127.0.0.1:\K\d+' "$NGINX_SITE" 2>/dev/null || echo "Не найдено")
@@ -234,9 +234,6 @@ main_menu() {
     while true; do
         clear
         echo -e "${PURPLE}=== REMNASCRYPT MANAGER ===${RESET}"
-        # Используем printf для фиксации ширины
-        # %-3s — номер пункта (ширина 3 символа, выравнивание влево)
-        # %s  — текст пункта
         printf "%-3s %s\n" "1)" "📊 Статус (подробно)"
         printf "%-3s %s\n" "2)" "⚡ Обновить ядро Xray"
         printf "%-3s %s\n" "3)" "🔄 Перезагрузить Docker"
@@ -250,21 +247,21 @@ main_menu() {
         case "$act" in
             1) show_info ;;
             2) select_xray_version ;;
-            3) docker compose -f "$CONFIG_FILE" up -d && log "Docker перечитал конфиги!" ;;
+            3) cd "$DIR" && docker compose restart && log "Docker-контейнеры перезапущены!" ;;
             4) 
-                read -r -p "Новый порт (в nginx listen): " NP
+                read -r -p "Новый порт (SelfSNI): " NP
                 if [[ "$NP" =~ ^[0-9]+$ ]]; then
-                    sed -i "s/listen [0-9]\+ ssl/listen $NP ssl/" "$NGINX_SITE" && systemctl restart nginx && log "Порт обновлен"
+                    sed -i "s/listen 127.0.0.1:[0-9]\+/listen 127.0.0.1:$NP/" "$NGINX_SITE" && systemctl restart nginx && log "Порт обновлен"
                 else warn "Только цифры!"; fi ;;
             5) 
-                read -r -p "Новый порт: " NP
+                read -r -p "Новый порт ноды: " NP
                 if [[ "$NP" =~ ^[0-9]+$ ]]; then
-                    sed -i "s/NODE_PORT=.*/NODE_PORT=$NP/" "$CONFIG_FILE" && docker compose -f "$CONFIG_FILE" up -d && log "Порт ноды обновлен"
+                    sed -i "s/NODE_PORT=.*/NODE_PORT=$NP/" "$CONFIG_FILE" && cd "$DIR" && docker compose up -d && log "Порт ноды обновлен"
                 else warn "Только цифры!"; fi ;;
             6) 
                 read -r -p "Новый ключ: " NK
                 if [[ -n "$NK" ]]; then
-                    sed -i "s/SECRET_KEY=.*/SECRET_KEY=$NK/" "$CONFIG_FILE" && docker compose -f "$CONFIG_FILE" up -d && log "Ключ обновлен"
+                    sed -i "s/SECRET_KEY=.*/SECRET_KEY=$NK/" "$CONFIG_FILE" && cd "$DIR" && docker compose up -d && log "Ключ обновлен"
                 else warn "Ключ не может быть пустым"; fi ;;
             7) uninstall_all ;;
             8) exit 0 ;;
