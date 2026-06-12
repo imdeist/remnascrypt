@@ -361,16 +361,16 @@ main_menu() {
     while true; do
         draw_banner
         echo -e "${CYAN}╭────────────────────────────────────────────────────╮${RESET}"
-        echo -e "${CYAN}│${RESET}  1) 📊 Статус (подробно)                          ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  2) ⚡ Обновить ядро Xray                         ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  3) 🔄 Перезагрузить службы (Docker)             ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  4) 🚪 Изменить SelfSNI порт                      ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  5) ⚙️  Изменить порт ноды                        ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  6) 🔑 Изменить SECRET_KEY                        ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  7) 🌐 Выбрать шаблон (заглушку)                  ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  1) 📊 Статус                                      ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  2) ⚡ Обновить ядро Xray                          ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  3) 🔄 Перезагрузить Docker                        ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  4) 🚪 Изменить SelfSNI порт                       ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  5) ⚙️  Изменить порт ноды                          ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  6) 🔑 Изменить SECRET_KEY                         ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  7) 🌐 Выбрать cap                                 ${CYAN}│${RESET}"
         echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
-        echo -e "${CYAN}│${RESET}  8) ${RED}🗑️  УДАЛИТЬ ВСЁ${RESET}                               ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  9) 🚪 Выход                                      ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  8) 🗑️  Удалить                                     ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  9) 🚪 Выход                                       ${CYAN}│${RESET}"
         echo -e "${CYAN}╰────────────────────────────────────────────────────╯\n${RESET}"
         read -r -p " Выберите действие [1-9]: " act
 
