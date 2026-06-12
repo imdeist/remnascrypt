@@ -68,8 +68,14 @@ check_deps() {
 uninstall_all() {
     draw_banner
     echo -e "${RED}${BOLD}⚠️  ВНИМАНИЕ: АБСОЛЮТНОЕ УДАЛЕНИЕ СИСТЕМЫ ⚠️${RESET}"
-    echo -e "${DIM}Это действие безвозвратно удалит Docker Engine, Nginx, Certbot и все данные ноды.${RESET}\n"
-    read -r -p "Ты уверен, что хочешь продолжить? (y/n): " confirm
+    echo -e "${DIM}Будут безвозвратно удалены следующие компоненты:${RESET}"
+    echo -e "  ${RED}1.${RESET} Docker Engine, все контейнеры, образы и сети"
+    echo -e "  ${RED}2.${RESET} Nginx веб-сервер и все его конфигурации"
+    echo -e "  ${RED}3.${RESET} Certbot, логи и выпущенные SSL-сертификаты"
+    echo -e "  ${RED}4.${RESET} Рабочие директории (/opt/remnascrypt, /var/www/remnascrypt)"
+    echo -e "  ${RED}5.${RESET} Системные симлинки и команда вызова (remnascrypt)\n"
+    
+    read -r -p "Ты абсолютно уверен, что хочешь выжечь всё это? (y/n): " confirm
     if [[ "$confirm" != "y" ]]; then warn "Процесс удаления отменен."; sleep 1.5; return; fi
 
     info "Запущен процесс полной очистки сервера..."
@@ -79,9 +85,11 @@ uninstall_all() {
 
     if command -v docker &> /dev/null; then
         echo -e "   ${DIM}Остановка контейнеров и удаление Docker...${RESET}"
-        docker stop $(docker ps -aq) >/dev/null 2>&1
-        apt-get purge -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras docker </dev/null>/dev/null 2>&1
-        rm -rf /var/lib/docker /var/lib/containerd /etc/docker
+        if [[ -n "$(docker ps -aq 2>/dev/null)" ]]; then
+            docker stop $(docker ps -aq) >/dev/null 2>&1
+        fi
+        apt-get purge -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras docker docker.io </dev/null>/dev/null 2>&1
+        rm -rf /var/lib/docker /var/lib/containerd /etc/docker ~/.docker
     fi
 
     echo -e "   ${DIM}Удаление веб-сервера Nginx...${RESET}"
@@ -91,10 +99,14 @@ uninstall_all() {
 
     echo -e "   ${DIM}Удаление Certbot и SSL-сертификатов...${RESET}"
     apt-get purge -yq certbot python3-certbot-nginx </dev/null>/dev/null 2>&1
-    rm -rf /etc/letsencrypt /var/lib/letsencrypt
+    rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
 
-    echo -e "   ${DIM}Удаление локальных файлов и ярлыков...${RESET}"
-    rm -rf "$DIR" "$SCRIPT_PATH" "/usr/local/bin/run.sh"
+    echo -e "   ${DIM}Удаление локальных файлов и системных ярлыков...${RESET}"
+    # Уничтожение директорий
+    rm -rf "$DIR" "$WEBROOT_DIR"
+    # Прямое удаление всех возможных алиасов и симлинков
+    rm -f "/usr/local/bin/remnascrypt" "/usr/bin/remnascrypt" "/bin/remnascrypt"
+    rm -f "/usr/local/bin/run.sh" "$SCRIPT_PATH"
 
     echo -e "   ${DIM}Финальная оптимизация системы...${RESET}"
     apt-get autoremove -yq </dev/null>/dev/null 2>&1
@@ -133,7 +145,7 @@ select_xray_version() {
     IFS='|' read -r tag pre <<< "${versions[$choice-1]}"
     info "Скачивание и интеграция ядра $tag..."
 
-    rm "$DIR/xray"
+    rm -rf "$DIR/xray"
     mkdir -p "$DIR/xray"
     curl -sL "https://github.com/XTLS/Xray-core/releases/download/${tag}/Xray-linux-64.zip" -o /tmp/xray.zip
     unzip -q -o /tmp/xray.zip -d "$DIR/xray" && chmod +x "$DIR/xray/xray" && rm /tmp/xray.zip
