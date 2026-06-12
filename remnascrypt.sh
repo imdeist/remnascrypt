@@ -45,27 +45,26 @@ draw_banner() {
 # БЛОК УСТАНОВКИ И ЗАВИСИМОСТЕЙ
 # ==========================================
 
-# Проверка и тихая установка пакетов
 check_deps() {
-    local deps=(curl nginx certbot git jq unzip)
+    local deps=(curl nginx certbot git jq unzip wget)
     info "Проверка системных зависимостей..."
     
+    export DEBIAN_FRONTEND=noninteractive
     for dep in "${deps[@]}"; do
         if ! command -v "$dep" &> /dev/null; then
             echo -e "   ${DIM}Установка пакета: $dep...${RESET}"
-            apt update &>/dev/null && apt install -y "$dep" &>/dev/null
+            apt-get update >/dev/null 2>&1
+            apt-get install -yq "$dep" >/dev/null 2>&1
         fi
     done
 
-    # Установка Docker Engine, если отсутствует
     if ! command -v docker &> /dev/null; then
         echo -e "   ${DIM}Установка Docker Engine...${RESET}"
-        curl -fsSL https://get.docker.com | bash &>/dev/null
+        curl -fsSL https://get.docker.com | bash >/dev/null 2>&1
     fi
     success "Все зависимости успешно проверены и установлены!"
 }
 
-# Полное удаление всех компонентов системы
 uninstall_all() {
     draw_banner
     echo -e "${RED}${BOLD}⚠️  ВНИМАНИЕ: АБСОЛЮТНОЕ УДАЛЕНИЕ СИСТЕМЫ ⚠️${RESET}"
@@ -74,34 +73,32 @@ uninstall_all() {
     if [[ "$confirm" != "y" ]]; then warn "Процесс удаления отменен."; sleep 1.5; return; fi
 
     info "Запущен процесс полной очистки сервера..."
+    
+    # Жесткое отключение интерактивных запросов apt
+    export DEBIAN_FRONTEND=noninteractive
 
-    # Остановка и снос Docker пакетов
     if command -v docker &> /dev/null; then
         echo -e "   ${DIM}Остановка контейнеров и удаление Docker...${RESET}"
-        docker stop $(docker ps -aq) &>/dev/null
-        apt purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras docker &>/dev/null
+        docker stop $(docker ps -aq) >/dev/null 2>&1
+        apt-get purge -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras docker </dev/null>/dev/null 2>&1
         rm -rf /var/lib/docker /var/lib/containerd /etc/docker
     fi
 
-    # Полное удаление Nginx конфигураций и директорий
     echo -e "   ${DIM}Удаление веб-сервера Nginx...${RESET}"
-    systemctl stop nginx &>/dev/null
-    apt purge -y nginx nginx-common nginx-full &>/dev/null
+    systemctl stop nginx >/dev/null 2>&1
+    apt-get purge -yq nginx nginx-common nginx-full </dev/null>/dev/null 2>&1
     rm -rf /etc/nginx /var/www/remnascrypt /var/log/nginx
 
-    # Удаление SSL сертификатов Let's Encrypt
     echo -e "   ${DIM}Удаление Certbot и SSL-сертификатов...${RESET}"
-    apt purge -y certbot python3-certbot-nginx &>/dev/null
+    apt-get purge -yq certbot python3-certbot-nginx </dev/null>/dev/null 2>&1
     rm -rf /etc/letsencrypt /var/lib/letsencrypt
 
-    # Удаление рабочих папок скрипта и системных симлинков
     echo -e "   ${DIM}Удаление локальных файлов и ярлыков...${RESET}"
     rm -rf "$DIR" "$SCRIPT_PATH" "/usr/local/bin/run.sh"
 
-    # Очистка кэша пакетов apt
     echo -e "   ${DIM}Финальная оптимизация системы...${RESET}"
-    apt autoremove -y &>/dev/null
-    apt autoclean &>/dev/null
+    apt-get autoremove -yq </dev/null>/dev/null 2>&1
+    apt-get autoclean -yq </dev/null>/dev/null 2>&1
 
     success "Система абсолютно чиста. Увидимся!"
     exit 0
@@ -111,17 +108,14 @@ uninstall_all() {
 # БЛОК РАБОТЫ С ЯДРОМ И СТАТУСОМ
 # ==========================================
 
-# Смена/Обновление версии ядра Xray
 select_xray_version() {
     draw_banner
     check_deps
     info "Запрос актуальных версий Xray с серверов GitHub..."
     
-    # Получаем список релизов (таймаут 10 сек)
     local releases_json=$(curl -s --max-time 10 "https://api.github.com/repos/XTLS/Xray-core/releases")
     if [[ -z "$releases_json" ]]; then error "Ошибка сети или лимит запросов к GitHub API."; sleep 2; return; fi
     
-    # Парсим последние 10 версий (выделяем тег и признак пререлиза)
     mapfile -t versions < <(echo "$releases_json" | jq -r '.[0:10] | .[] | "\(.tag_name)|\(.prerelease)"')
     
     echo -e "\n${BOLD}Доступные версии для установки:${RESET}"
@@ -129,7 +123,6 @@ select_xray_version() {
         IFS='|' read -r tag pre <<< "${versions[$i]}"
         local status="${GREEN}[STABLE]${RESET}"
         [[ "$pre" == "true" ]] && status="${YELLOW}[BETA]  ${RESET}"
-        # Вывод теперь обрабатывает цвета корректно
         printf "  %-2s %s %s\n" "$((i+1)))" "$status" "$tag"
     done
     
@@ -141,49 +134,89 @@ select_xray_version() {
     info "Скачивание и интеграция ядра $tag..."
     
     mkdir -p "$DIR/xray"
-    # Тихо скачиваем zip архивы и распаковываем бинарник
     curl -sL "https://github.com/XTLS/Xray-core/releases/download/${tag}/Xray-linux-64.zip" -o /tmp/xray.zip
     unzip -q -o /tmp/xray.zip -d "$DIR/xray" && chmod +x "$DIR/xray/xray" && rm /tmp/xray.zip
     
-    # Монтируем бинарник в контейнер через volumes, если записи еще нет
     if ! grep -q "\./xray/xray" "$CONFIG_FILE"; then
         sed -i '/volumes:/a \      - ./xray/xray:/usr/local/bin/xray' "$CONFIG_FILE"
     fi
     
-    # Пересобираем контейнер с новым ядром
-    cd "$DIR" && docker compose up -d &>/dev/null
+    cd "$DIR" && docker compose up -d >/dev/null 2>&1
     success "Ядро Xray успешно обновлено до версии $tag!"
     sleep 2
 }
 
-# Панель мониторинга (Дашборд статуса ноды)
+select_template() {
+    draw_banner
+    info "Запрос доступных шаблонов из репозитория capsite..."
+    
+    local API_URL="https://api.github.com/repos/imdeist/capsite/contents/caps"
+    local RAW_URL="https://raw.githubusercontent.com/imdeist/capsite/main/caps"
+    
+    local files_json=$(curl -s --max-time 10 "$API_URL")
+    if [[ -z "$files_json" ]] || echo "$files_json" | grep -q "API rate limit"; then 
+        error "Ошибка сети или лимит запросов к GitHub API."
+        sleep 2
+        return
+    fi
+
+    mapfile -t templates < <(echo "$files_json" | jq -r '.[]?.name' | grep "\.html$" | sort -V)
+    
+    if [ ${#templates[@]} -eq 0 ]; then
+        warn "HTML шаблоны не найдены в репозитории!"
+        sleep 2
+        return
+    fi
+
+    echo -e "\n${BOLD}Доступные заглушки:${RESET}"
+    for i in "${!templates[@]}"; do 
+        printf "  %-2s %s\n" "$((i+1)))" "${templates[$i]}"
+    done
+    
+    echo ""
+    read -r -p "Выберите номер [1-${#templates[@]}] (0 - отмена): " choice
+    
+    if [[ "$choice" -eq 0 ]]; then return; fi
+    
+    if [[ ! "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#templates[@]}" ]; then
+        warn "Неверный выбор. Отмена операции."
+        sleep 1.5
+        return
+    fi
+
+    local selected_file="${templates[$choice-1]}"
+    info "Загрузка и установка шаблона: $selected_file..."
+    
+    # Очистка старых html файлов в папке веб-сервера
+    find "$WEBROOT_DIR" -maxdepth 1 -name "*.html" -delete
+    
+    if curl -fsSL "$RAW_URL/$selected_file" -o "$WEBROOT_DIR/index.html"; then
+        systemctl reload nginx >/dev/null 2>&1
+        success "Сайт-заглушка успешно обновлена!"
+    else
+        error "Ошибка скачивания файла $selected_file."
+    fi
+    sleep 2
+}
+
 show_info() {
     draw_banner
     info "Анализ конфигурации и статуса служб..."
     
-    # Считываем текущий рабочий домен из путей сертификатов
     local domain=$(grep -oP "live/\K[^/]+" "$CONFIG_FILE" | head -1 || echo "Не найден")
-    
-    # Запрос версий компонентов
     local node_ver=$(docker inspect remnascrypt --format '{{.Config.Image}}' 2>/dev/null | cut -d: -f2 || echo "Unknown")
     local xray_ver=$(docker exec remnascrypt xray -version 2>/dev/null | head -n 1 | awk '{print $3}' || echo "Не найдено")
-    
-    # Парсинг портов из конфигов Nginx и Compose
     local port_sni=$(grep -oP 'listen 127.0.0.1:\K\d+' "$NGINX_SITE" 2>/dev/null || echo "Не найден")
     local port_node=$(grep -oP 'NODE_PORT=\K\d+' "$CONFIG_FILE" 2>/dev/null || echo "Не найден")
-    
-    # Проверка активности процессов
     local status_docker=$(docker inspect -f '{{.State.Running}}' remnascrypt 2>/dev/null)
     local status_nginx=$(systemctl is-active nginx)
 
-    # Чистый текст статусов служб для математического расчета ширины строки
     local txt_docker=$([[ "$status_docker" == "true" ]] && echo "РАБОТАЕТ" || echo "ОСТАНОВЛЕН")
     local clr_docker=$([[ "$status_docker" == "true" ]] && echo "$GREEN" || echo "$RED")
 
     local txt_nginx=$([[ "$status_nginx" == "active" ]] && echo "РАБОТАЕТ" || echo "ОСТАНОВЛЕН")
     local clr_nginx=$([[ "$status_nginx" == "active" ]] && echo "$GREEN" || echo "$RED")
 
-    # Вычисление динамических пробелов. Базовая ширина контента = 30 символов.
     local pad_1=$((30 - ${#domain}))
     local pad_2=$((30 - ${#node_ver}))
     local pad_3=$((30 - ${#xray_ver}))
@@ -192,7 +225,6 @@ show_info() {
     local pad_6=$((30 - ${#txt_docker}))
     local pad_7=$((30 - ${#txt_nginx}))
 
-    # Отрисовка идеально ровного дашборда
     clear
     echo -e "${CYAN}╭────────────────────────────────────────────────────╮"
     echo -e "│             ${BOLD}С Т А Т У С   С И С Т Е М Ы${RESET}${CYAN}            │"
@@ -220,7 +252,6 @@ install_process() {
     draw_banner
     info "Инициализация мастера первичной установки"
     
-    # Сбор стартовых данных
     read -r -p "🌐 Введите целевой домен: " DOMAIN
     read -r -p "🚪 Порт SelfSNI [9000]: " SPORT; SPORT="${SPORT:-9000}"
     read -r -p "⚙️  Порт ноды [2272]: " NODE_PORT; NODE_PORT="${NODE_PORT:-2272}"
@@ -228,89 +259,27 @@ install_process() {
     
     echo ""
     check_deps
-    
     mkdir -p "$DIR" "$WEBROOT_DIR"
     
-    # 1. Заглушка веб-сервера для верификации домена Certbot'ом
     info "Конфигурация временного веб-сервера для SSL проверки..."
-    cat > "$NGINX_SITE" <<EOF
-server {
-    listen 80; server_name $DOMAIN; root $WEBROOT_DIR;
-    location /.well-known/acme-challenge/ { allow all; }
-    location / { return 301 https://\$host\$request_uri; }
-}
-EOF
-    ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf
-    systemctl restart nginx &>/dev/null
+    cat > "$NGINX_SITE" <<EOF "$NGINX_SITE" $DOMAIN; $WEBROOT_DIR; -sf / /.well-known/acme-challenge/ /etc/nginx/sites-enabled/remnascrypt.conf 301 80; EOF all; allow https://\$host\$request_uri; listen ln location nginx restart return root server server_name systemctl { }>/dev/null 2>&1
     
-    # Выпуск бесплатного SSL-сертификата Let's Encrypt
     info "Генерация действительного SSL сертификата (Certbot)..."
-    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive &>/dev/null
+    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
         error "Критическая ошибка выпуска SSL. Проверьте статус DNS A-записи домена!"
         exit 1
     fi
     success "SSL-сертификаты успешно получены и активированы!"
     
-    # 2. Боевой отказоустойчивый конфиг Nginx (Сайт на 443 + Нода)
     info "Развертывание финальной конфигурации Nginx..."
-    cat > "$NGINX_SITE" <<EOF
-# Перенаправление HTTP -> HTTPS
-server {
-    listen 80; server_name $DOMAIN; root $WEBROOT_DIR;
-    location /.well-known/acme-challenge/ { allow all; }
-    location / { return 301 https://\$host\$request_uri; }
-}
-
-# Основной сайт-заглушка на порту 443
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN;
-    root $WEBROOT_DIR;
+    cat > "$NGINX_SITE" <<EOF $DOMAIN; $WEBROOT_DIR; / /.well-known/acme-challenge/ /etc/letsencrypt/live/$DOMAIN/fullchain.pem; /etc/letsencrypt/live/$DOMAIN/privkey.pem; 127.0.0.1:$SPORT 127.0.0.1; 301 404; 443 80; EOF TLSv1.2 TLSv1.3; \$uri \$uri/="404;" all; allow http2 http2; https://\$host\$request_uri; listen location nginx proxy_protocol; real_ip_header restart return root server server_name set_real_ip_from ssl ssl_certificate ssl_certificate_key ssl_protocols systemctl try_files { }>/dev/null 2>&1
     
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    
-    location / { try_files \$uri \$uri/ =404; }
-}
-
-# Защищенный локальный прокси-порт для ноды
-server {
-    listen 127.0.0.1:$SPORT ssl http2 proxy_protocol;
-    server_name $DOMAIN;
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    real_ip_header proxy_protocol; set_real_ip_from 127.0.0.1;
-    
-    location / { return 404; }
-}
-EOF
-    systemctl restart nginx &>/dev/null
-    
-    # 3. Генерация манифеста Docker Compose
     info "Сборка контейнера Remnascrypt через Docker Compose..."
-    cat > "$CONFIG_FILE" <<EOF
-services:
-  remnascrypt:
-    container_name: remnascrypt
-    image: remnawave/node:latest
-    network_mode: host
-    restart: always
-    cap_add: [NET_ADMIN]
-    environment:
-      - NODE_PORT=$NODE_PORT
-      - SECRET_KEY=$SECRET_KEY
-    volumes:
-      - '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro'
-      - '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro'
-EOF
-    cd "$DIR" && docker compose up -d &>/dev/null
+    cat > "$CONFIG_FILE" <<EOF "$DIR" && '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro' '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro' - -d EOF NODE_PORT="$NODE_PORT" SECRET_KEY="$SECRET_KEY" [NET_ADMIN] always cap_add: cd compose container_name: docker environment: host image: network_mode: remnascrypt remnascrypt: remnawave/node:latest restart: services: up volumes:>/dev/null 2>&1
     
-    # 4. Пропись глобальных алиасов управления в системе
     info "Создание глобальных команд вызова менеджера..."
-    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh" &>/dev/null
+    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh" >/dev/null 2>&1
     chmod +x "$DIR/remnascrypt.sh"
     echo -e "#!/bin/bash\nbash $DIR/remnascrypt.sh" > "$DIR/run.sh"
     chmod +x "$DIR/run.sh"
@@ -329,7 +298,6 @@ EOF
 main_menu() {
     while true; do
         draw_banner
-        # Отрисовка меню с жестко фиксированными пробелами (pixel-perfect дизайн под эмодзи)
         echo -e "${CYAN}╭────────────────────────────────────────────────────╮${RESET}"
         echo -e "${CYAN}│${RESET}  1) 📊 Статус (подробно)                          ${CYAN}│${RESET}"
         echo -e "${CYAN}│${RESET}  2) ⚡ Обновить ядро Xray                         ${CYAN}│${RESET}"
@@ -337,18 +305,19 @@ main_menu() {
         echo -e "${CYAN}│${RESET}  4) 🚪 Изменить SelfSNI порт                      ${CYAN}│${RESET}"
         echo -e "${CYAN}│${RESET}  5) ⚙️  Изменить порт ноды                        ${CYAN}│${RESET}"
         echo -e "${CYAN}│${RESET}  6) 🔑 Изменить SECRET_KEY                        ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  7) 🌐 Выбрать шаблон (заглушку)                  ${CYAN}│${RESET}"
         echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
-        echo -e "${CYAN}│${RESET}  7) ${RED}🗑️  УДАЛИТЬ ВСЁ${RESET}                               ${CYAN}│${RESET}"
-        echo -e "${CYAN}│${RESET}  8) 🚪 Выход                                      ${CYAN}│${RESET}"
-        echo -e "${CYAN}╰────────────────────────────────────────────────────╯${RESET}\n"
-        read -r -p " Выберите действие [1-8]: " act
+        echo -e "${CYAN}│${RESET}  8) ${RED}🗑️  УДАЛИТЬ ВСЁ${RESET}                               ${CYAN}│${RESET}"
+        echo -e "${CYAN}│${RESET}  9) 🚪 Выход                                      ${CYAN}│${RESET}"
+        echo -e "${CYAN}╰────────────────────────────────────────────────────╯\n${RESET}"
+        read -r -p " Выберите действие [1-9]: " act
 
         case "$act" in
             1) show_info ;;
             2) select_xray_version ;;
             3) 
                 info "Перезапуск контейнера приложений..."
-                cd "$DIR" && docker compose restart &>/dev/null
+                cd "$DIR" && docker compose restart >/dev/null 2>&1
                 success "Все службы успешно перезапущены!"
                 sleep 1.5
                 ;;
@@ -356,9 +325,8 @@ main_menu() {
                 draw_banner
                 read -r -p " Введите новый порт SelfSNI: " NP
                 if [[ "$NP" =~ ^[0-9]+$ ]]; then
-                    # Точечная замена порта локального прокси
                     sed -i "s/listen 127.0.0.1:[0-9]\+/listen 127.0.0.1:$NP/" "$NGINX_SITE"
-                    systemctl restart nginx &>/dev/null
+                    systemctl restart nginx >/dev/null 2>&1
                     success "Порт SelfSNI успешно изменен на $NP"
                 else warn "Ошибка: Вводить можно исключительно цифры!"; fi
                 sleep 2
@@ -369,7 +337,7 @@ main_menu() {
                 if [[ "$NP" =~ ^[0-9]+$ ]]; then
                     sed -i "s/NODE_PORT=.*/NODE_PORT=$NP/" "$CONFIG_FILE"
                     info "Применение конфигурации и рестарт ноды..."
-                    cd "$DIR" && docker compose up -d &>/dev/null
+                    cd "$DIR" && docker compose up -d >/dev/null 2>&1
                     success "Порт ноды успешно изменен на $NP"
                 else warn "Ошибка: Вводить можно исключительно цифры!"; fi
                 sleep 2
@@ -380,30 +348,24 @@ main_menu() {
                 if [[ -n "$NK" ]]; then
                     sed -i "s/SECRET_KEY=.*/SECRET_KEY=$NK/" "$CONFIG_FILE"
                     info "Перезапуск контейнера с новым секретным ключом..."
-                    cd "$DIR" && docker compose up -d &>/dev/null
+                    cd "$DIR" && docker compose up -d >/dev/null 2>&1
                     success "Секретный ключ авторизации успешно обновлен!"
                 else warn "Ошибка: Ключ безопасности не может быть пустым!"; fi
                 sleep 2
                 ;;
-            7) uninstall_all ;;
-            8) clear; exit 0 ;;
-            *) warn "Неверный ввод, выберите пункт от 1 до 8."; sleep 1 ;;
+            7) select_template ;;
+            8) uninstall_all ;;
+            9) clear; exit 0 ;;
+            *) warn "Неверный ввод, выберите пункт от 1 до 9."; sleep 1 ;;
         esac
     done
 }
 
-# ==========================================
-# ПРОВЕРКА ПРАВ И СТАРТ СКРИПТА
-# ==========================================
-
-# Проверка на права Суперпользователя (Root)
 if [[ "$EUID" -ne 0 ]]; then 
     echo -e "${RED}✖ Ошибка: Этот скрипт требует привилегий суперпользователя (root). Запустите через sudo.${RESET}"
     exit 1
 fi
 
-# Если compose-файл существует — нода уже развернута. Открываем меню.
-# Иначе запускаем мастер установки с нуля.
 if [[ -f "$CONFIG_FILE" ]]; then 
     main_menu
 else 
