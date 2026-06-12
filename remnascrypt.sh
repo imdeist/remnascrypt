@@ -132,7 +132,8 @@ select_xray_version() {
     
     IFS='|' read -r tag pre <<< "${versions[$choice-1]}"
     info "Скачивание и интеграция ядра $tag..."
-    
+
+    rm "$DIR/xray"
     mkdir -p "$DIR/xray"
     curl -sL "https://github.com/XTLS/Xray-core/releases/download/${tag}/Xray-linux-64.zip" -o /tmp/xray.zip
     unzip -q -o /tmp/xray.zip -d "$DIR/xray" && chmod +x "$DIR/xray/xray" && rm /tmp/xray.zip
@@ -141,7 +142,7 @@ select_xray_version() {
         sed -i '/volumes:/a \      - ./xray/xray:/usr/local/bin/xray' "$CONFIG_FILE"
     fi
     
-    cd "$DIR" && docker compose up -d >/dev/null 2>&1
+    cd "$DIR" && docker compose down && docker compose up -d >/dev/null 2>&1
     success "Ядро Xray успешно обновлено до версии $tag!"
     sleep 2
 }
