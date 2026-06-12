@@ -283,7 +283,7 @@ show_info() {
     printf "${CYAN}│${RESET} ⚡ Xray Core:       %s%*s ${CYAN}│${RESET}\n" "$xray_ver" "$pad_3" ""
     echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
     printf "${CYAN}│${RESET} 🚪 SelfSNI Порт:    ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_sni" "$pad_4" ""
-    printf "${CYAN}│${RESET} ⚙️  Порт ноды:      ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_node" "$pad_5" ""
+    printf "${CYAN}│${RESET} ⚙️  Порт ноды:       ${YELLOW}%s${RESET}%*s ${CYAN}│${RESET}\n" "$port_node" "$pad_5" ""
     echo -e "${CYAN}├────────────────────────────────────────────────────┤${RESET}"
     printf "${CYAN}│${RESET} 🐳 Docker:          %s%s${RESET}%*s ${CYAN}│${RESET}\n" "$clr_docker" "$txt_docker" "$pad_6" ""
     printf "${CYAN}│${RESET} 🌐 Nginx:           %s%s${RESET}%*s ${CYAN}│${RESET}\n" "$clr_nginx" "$txt_nginx" "$pad_7" ""
