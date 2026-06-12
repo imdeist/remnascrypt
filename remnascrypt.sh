@@ -43,17 +43,41 @@ check_deps() {
 }
 
 uninstall_all() {
-    echo -e "\n${RED}⚠️  ВНИМАНИЕ: ПОЛНОЕ УДАЛЕНИЕ ⚠️${RESET}"
-    read -r -p "Ты уверен? (y/n): " confirm
-    if [[ "$confirm" != "y" ]]; then log "Отмена."; return; fi
+    echo -e "\n${RED}⚠️  ВНИМАНИЕ: АБСОЛЮТНОЕ УДАЛЕНИЕ (DOCKER, NGINX, CERTBOT, ДАННЫЕ) ⚠️${RESET}"
+    read -r -p "Ты уверен? Это удалит Docker Engine, Nginx, Certbot и ВСЕ файлы ноды (y/n): " confirm
+    if [[ "$confirm" != "y" ]]; then echo "Отмена."; return; fi
 
-    log "Остановка и удаление контейнеров..."
-    [[ -f "$CONFIG_FILE" ]] && docker compose -f "$CONFIG_FILE" down -v --remove-orphans >/dev/null 2>&1
-    
-    log "Удаление файлов конфигурации..."
-    rm -rf "$DIR" "$WEBROOT_DIR" "$NGINX_SITE" /etc/nginx/sites-enabled/remnascrypt.conf "$SCRIPT_PATH"
-    systemctl reload nginx 2>/dev/null
-    log "✅ Всё чисто."
+    # 1. Docker: Остановка всех контейнеров и удаление пакетов
+    if command -v docker &> /dev/null; then
+        log "Остановка всех контейнеров..."
+        docker stop $(docker ps -aq) 2>/dev/null
+        log "Удаление Docker..."
+        apt purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras docker 2>/dev/null
+        rm -rf /var/lib/docker /var/lib/containerd /etc/docker
+    fi
+
+    # 2. Nginx: Удаление
+    log "Удаление Nginx..."
+    systemctl stop nginx 2>/dev/null
+    apt purge -y nginx nginx-common nginx-full 2>/dev/null
+    rm -rf /etc/nginx /var/www/remnascrypt /var/log/nginx
+
+    # 3. Certbot: Удаление
+    log "Удаление Certbot..."
+    apt purge -y certbot python3-certbot-nginx 2>/dev/null
+    rm -rf /etc/letsencrypt /var/lib/letsencrypt
+
+    # 4. Файлы скрипта и бинарники
+    log "Удаление файлов скрипта..."
+    rm -rf "$DIR"
+    rm -f "$SCRIPT_PATH"
+    rm -f "/usr/local/bin/run.sh"
+
+    # 5. Финальная очистка системы
+    apt autoremove -y
+    apt autoclean
+
+    echo -e "${GREEN}✅ Всё удалено. Система чиста.${RESET}"
     exit 0
 }
 
