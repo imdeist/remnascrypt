@@ -261,36 +261,69 @@ install_process() {
     check_deps
     mkdir -p "$DIR" "$WEBROOT_DIR"
     
-    info "Конфигурация временного веб-сервера для SSL проверки..."
-    cat > "$NGINX_SITE" <<EOF "$NGINX_SITE" $DOMAIN; $WEBROOT_DIR; -sf / /.well-known/acme-challenge/ /etc/nginx/sites-enabled/remnascrypt.conf 301 80; EOF all; allow https://\$host\$request_uri; listen ln location nginx restart return root server server_name systemctl { }>/dev/null 2>&1
-    
-    info "Генерация действительного SSL сертификата (Certbot)..."
-    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive >/dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
-        error "Критическая ошибка выпуска SSL. Проверьте статус DNS A-записи домена!"
-        exit 1
-    fi
-    success "SSL-сертификаты успешно получены и активированы!"
+    info "Конфигурация временного веб-сервера..."
+    cat > "$NGINX_SITE" <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    root $WEBROOT_DIR;
+    location /.well-known/acme-challenge/ { allow all; }
+    location / { return 301 https://\$host\$request_uri; }
+}
+EOF
+    systemctl restart nginx
+
+    info "Генерация SSL сертификата..."
+    certbot certonly --webroot -w "$WEBROOT_DIR" -d "$DOMAIN" --agree-tos -m "admin@$DOMAIN" --non-interactive
     
     info "Развертывание финальной конфигурации Nginx..."
-    cat > "$NGINX_SITE" <<EOF $DOMAIN; $WEBROOT_DIR; / /.well-known/acme-challenge/ /etc/letsencrypt/live/$DOMAIN/fullchain.pem; /etc/letsencrypt/live/$DOMAIN/privkey.pem; 127.0.0.1:$SPORT 127.0.0.1; 301 404; 443 80; EOF TLSv1.2 TLSv1.3; \$uri \$uri/="404;" all; allow http2 http2; https://\$host\$request_uri; listen location nginx proxy_protocol; real_ip_header restart return root server server_name set_real_ip_from ssl ssl_certificate ssl_certificate_key ssl_protocols systemctl try_files { }>/dev/null 2>&1
+    cat > "$NGINX_SITE" <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+server {
+    listen 443 ssl http2;
+    server_name $DOMAIN;
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    root $WEBROOT_DIR;
+    location / {
+        proxy_pass http://127.0.0.1:$SPORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+}
+EOF
+    systemctl restart nginx
     
-    info "Сборка контейнера Remnascrypt через Docker Compose..."
-    cat > "$CONFIG_FILE" <<EOF "$DIR" && '/etc/letsencrypt/live/$DOMAIN/fullchain.pem:/etc/letsencrypt/live/fullchain.pem:ro' '/etc/letsencrypt/live/$DOMAIN/privkey.pem:/etc/letsencrypt/live/privkey.pem:ro' - -d EOF NODE_PORT="$NODE_PORT" SECRET_KEY="$SECRET_KEY" [NET_ADMIN] always cap_add: cd compose container_name: docker environment: host image: network_mode: remnascrypt remnascrypt: remnawave/node:latest restart: services: up volumes:>/dev/null 2>&1
+    info "Создание docker-compose.yml..."
+    cat > "$CONFIG_FILE" <<EOF
+services:
+  remnascrypt:
+    image: remnawave/node:latest
+    container_name: remnascrypt
+    restart: always
+    environment:
+      - NODE_PORT=$NODE_PORT
+      - SECRET_KEY=$SECRET_KEY
+    volumes:
+      - ./xray:/usr/local/bin/xray
+    network_mode: host
+EOF
     
-    info "Создание глобальных команд вызова менеджера..."
-    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh" >/dev/null 2>&1
+    # Завершающие настройки
+    curl -fsSL "$REPO_URL" -o "$DIR/remnascrypt.sh"
     chmod +x "$DIR/remnascrypt.sh"
     echo -e "#!/bin/bash\nbash $DIR/remnascrypt.sh" > "$DIR/run.sh"
     chmod +x "$DIR/run.sh"
     ln -sf "$DIR/run.sh" "$SCRIPT_PATH"
     
-    echo ""
-    success "ПРОЦЕСС УСТАНОВКИ УСПЕШНО ЗАВЕРШЕН!"
-    echo -e "Вызывайте панель управления из любой точки системы командой: ${CYAN}${BOLD}remnascrypt${RESET}"
+    success "УСТАНОВКА ЗАВЕРШЕНА! Команда: remnascrypt"
     exit 0
 }
-
 # ==========================================
 # ГЛАВНОЕ МЕНЮ (Точка входа)
 # ==========================================
