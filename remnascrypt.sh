@@ -45,7 +45,7 @@ draw_banner() {
 # ==============================================================================
 
 check_deps() {
-    local deps=(curl nginx certbot git jq unzip wget nano)
+    local deps=(curl nginx certbot git jq unzip wget nano wireguard-tools)
     info "Проверка системных зависимостей..."
     
     export DEBIAN_FRONTEND=noninteractive
@@ -73,7 +73,7 @@ uninstall_all() {
     echo -e "  ${RED}3.${RESET} Certbot, логи и выпущенные SSL-сертификаты"
     echo -e "  ${RED}4.${RESET} Рабочие директории (/opt/remnascrypt, /var/www/remnascrypt)"
     echo -e "  ${RED}5.${RESET} Системные симлинки и команда вызова (remnascrypt)"
-    echo -e "  ${RED}6.${RESET} Оптимизация сети (BBR)\n"
+    echo -e "  ${RED}6.${RESET} Оптимизация сети (BBR) и Cloudflare WARP\n"
     
     read -r -p "Ты абсолютно уверен, что хочешь выжечь всё это? (y/n): " confirm
     if [[ "$confirm" != "y" ]]; then warn "Процесс удаления отменен."; sleep 1.5; return; fi
@@ -102,8 +102,9 @@ uninstall_all() {
     apt-get purge -yq certbot python3-certbot-nginx </dev/null>/dev/null 2>&1
     rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
 
-    # Шаг 4: Настройки сети
-    echo -e "   ${DIM}Откат сетевых настроек (BBR)...${RESET}"
+    # Шаг 4: Настройки сети и WARP
+    echo -e "   ${DIM}Удаление Cloudflare WARP и откат сетевых настроек...${RESET}"
+    bash <(curl -fsSL https://raw.githubusercontent.com/distillium/warp-native/main/uninstall.sh) >/dev/null 2>&1
     rm -f /etc/sysctl.d/99-vpn-optim.conf
     sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
     sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
@@ -253,6 +254,40 @@ EOF
         success "Сетевые параметры ядра оптимизированы!"
     fi
     sleep 1.5
+}
+
+warp_menu() {
+    while true; do
+        draw_banner
+        local w_status="${RED}ОСТАНОВЛЕН / НЕ УСТАНОВЛЕН${RESET}"
+        # Проверяем наличие запущенного интерфейса warp или конфига
+        if ip link show warp >/dev/null 2>&1 || [[ -f "/etc/wireguard/warp.conf" ]]; then
+            w_status="${GREEN}РАБОТАЕТ${RESET}"
+        fi
+
+        echo -e "${BOLD}УПРАВЛЕНИЕ CLOUDFLARE WARP (Native)${RESET}\n"
+        echo -e " Статус: $w_status\n"
+        echo -e "  1) 📥 Установить / Настроить WARP"
+        echo -e "  2) ${RED}🗑️  Удалить WARP${RESET}"
+        echo -e "  0) 🔙 Назад в главное меню\n"
+        read -r -p " Выберите действие: " w_act
+
+        case "$w_act" in
+            1) 
+                info "Запуск установщика warp-native..."
+                bash <(curl -fsSL https://raw.githubusercontent.com/distillium/warp-native/main/install.sh)
+                echo ""; read -n 1 -s -r -p "Нажмите любую клавишу для продолжения..."
+                ;;
+            2)
+                info "Удаление Cloudflare WARP..."
+                bash <(curl -fsSL https://raw.githubusercontent.com/distillium/warp-native/main/uninstall.sh)
+                success "WARP успешно удален из системы!"
+                sleep 2
+                ;;
+            0) break ;;
+            *) warn "Неверный ввод."; sleep 1 ;;
+        esac
+    done
 }
 
 # ==============================================================================
@@ -417,6 +452,12 @@ main_menu() {
             bbr_status="${GREEN}[ВКЛ]${RESET}"
         fi
 
+        # Динамический статус WARP
+        local warp_status="${RED}[ВЫКЛ]${RESET}"
+        if ip link show warp >/dev/null 2>&1 || [[ -f "/etc/wireguard/warp.conf" ]]; then
+            warp_status="${GREEN}[ВКЛ]${RESET}"
+        fi
+
         echo -e "  1)  📊 Статус"
         echo -e "  2)  ⚡ Обновить ядро Xray"
         echo -e "  3)  🔄 Перезагрузить Docker"
@@ -425,11 +466,12 @@ main_menu() {
         echo -e "  6)  🔑 Изменить SECRET_KEY"
         echo -e "  7)  🌐 Выбрать cap"
         echo -e "  8)  🚀 Оптимизация сети (BBR) $bbr_status"
-        echo -e "  9)  📥 Обновить скрипт"
-        echo -e "  10) ${RED}🗑️  Удалить ноду${RESET}"
+        echo -e "  9)  🛡️  Управление Cloudflare WARP $warp_status"
+        echo -e "  10) 📥 Обновить скрипт"
+        echo -e "  11) ${RED}🗑️  Удалить ноду${RESET}"
         echo -e "  0)  🚪 Выход\n"
         
-        read -r -p " Выберите действие [0-10]: " act
+        read -r -p " Выберите действие [0-11]: " act
 
         case "$act" in
             1) show_info ;;
@@ -474,10 +516,11 @@ main_menu() {
                 ;;
             7) select_template ;;
             8) toggle_network_optim ;;
-            9) update_script ;;
-            10) uninstall_all ;;
+            9) warp_menu ;;
+            10) update_script ;;
+            11) uninstall_all ;;
             0) clear; exit 0 ;;
-            *) warn "Неверный ввод, выберите пункт от 0 до 10."; sleep 1 ;;
+            *) warn "Неверный ввод, выберите пункт от 0 до 11."; sleep 1 ;;
         esac
     done
 }
