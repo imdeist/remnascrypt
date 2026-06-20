@@ -34,8 +34,10 @@ error() { echo -e "${RED}✖ ${RESET}${BOLD}$1${RESET}"; }
 # --- ОТРИСОВКА ЗАГОЛОВКА ---
 draw_banner() {
     clear
-    echo -e "${MAGENTA}${BOLD}        R E M N A S C R Y P T        ${RESET}"
-    echo -e "${DIM}          Node Manager v2.0          ${RESET}\n"
+    echo -e "${MAGENTA}${BOLD}╭────────────────────────────────────────────────────╮"
+    echo -e "│               R E M N A S C R Y P T                │"
+    echo -e "│                 Node Manager v2.0                  │"
+    echo -e "╰────────────────────────────────────────────────────╯${RESET}"
 }
 
 # ==============================================================================
@@ -71,7 +73,7 @@ uninstall_all() {
     echo -e "  ${RED}3.${RESET} Certbot, логи и выпущенные SSL-сертификаты"
     echo -e "  ${RED}4.${RESET} Рабочие директории (/opt/remnascrypt, /var/www/remnascrypt)"
     echo -e "  ${RED}5.${RESET} Системные симлинки и команда вызова (remnascrypt)"
-    echo -e "  ${RED}6.${RESET} Оптимизация сети (BBR) и Unbound DNS (если установлены)\n"
+    echo -e "  ${RED}6.${RESET} Оптимизация сети (BBR)\n"
     
     read -r -p "Ты абсолютно уверен, что хочешь выжечь всё это? (y/n): " confirm
     if [[ "$confirm" != "y" ]]; then warn "Процесс удаления отменен."; sleep 1.5; return; fi
@@ -100,11 +102,8 @@ uninstall_all() {
     apt-get purge -yq certbot python3-certbot-nginx </dev/null>/dev/null 2>&1
     rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
 
-    # Шаг 4: Unbound и Настройки сети
-    echo -e "   ${DIM}Удаление Unbound DNS и откат BBR...${RESET}"
-    systemctl stop unbound >/dev/null 2>&1
-    apt-get purge -yq unbound unbound-host >/dev/null 2>&1
-    rm -rf /etc/unbound
+    # Шаг 4: Настройки сети
+    echo -e "   ${DIM}Откат сетевых настроек (BBR)...${RESET}"
     rm -f /etc/sysctl.d/99-vpn-optim.conf
     sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
     sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
@@ -257,78 +256,6 @@ EOF
 }
 
 # ==============================================================================
-# УПРАВЛЕНИЕ UNBOUND DNS
-# ==============================================================================
-
-unbound_menu() {
-    while true; do
-        draw_banner
-        local status_unbound=$(systemctl is-active unbound 2>/dev/null || echo "inactive")
-        local txt_unbound=$([[ "$status_unbound" == "active" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${RED}ОСТАНОВЛЕН / НЕ УСТАНОВЛЕН${RESET}")
-        
-        echo -e "${BOLD}УПРАВЛЕНИЕ UNBOUND DNS${RESET}\n"
-        echo -e " Статус службы: $txt_unbound\n"
-        echo -e "  1) 📥 Установить Unbound DNS"
-        echo -e "  2) ⚙️  Настроить конфигурацию (через nano)"
-        echo -e "  3) 🔄 Перезапустить службу"
-        echo -e "  4) ${RED}🗑️  Удалить Unbound DNS${RESET}"
-        echo -e "  0) 🔙 Назад\n"
-        read -r -p " Выберите действие: " ub_act
-
-        case "$ub_act" in
-            1) 
-                info "Установка Unbound DNS..."
-                apt-get update >/dev/null 2>&1
-                apt-get install -yq unbound >/dev/null 2>&1
-                
-                # Базовый конфиг (порт 5353)
-                cat > /etc/unbound/unbound.conf.d/remna-node.conf <<EOF
-server:
-    port: 5353
-    interface: 127.0.0.1
-    access-control: 127.0.0.0/8 allow
-    do-ip4: yes
-    do-udp: yes
-    do-tcp: yes
-    hide-identity: yes
-    hide-version: yes
-    prefetch: yes
-EOF
-                systemctl enable --now unbound >/dev/null 2>&1
-                systemctl restart unbound >/dev/null 2>&1
-                success "Unbound установлен и запущен на локальном порту 5353!"
-                sleep 2
-                ;;
-            2) 
-                if [[ ! -f "/etc/unbound/unbound.conf.d/remna-node.conf" ]]; then
-                    warn "Unbound не установлен или конфиг отсутствует!"
-                    sleep 2; continue
-                fi
-                nano /etc/unbound/unbound.conf.d/remna-node.conf
-                systemctl restart unbound >/dev/null 2>&1
-                success "Служба перезапущена с новыми параметрами."
-                sleep 1.5
-                ;;
-            3) 
-                systemctl restart unbound >/dev/null 2>&1
-                success "Служба Unbound перезапущена!"
-                sleep 1.5
-                ;;
-            4) 
-                info "Удаление Unbound..."
-                systemctl stop unbound >/dev/null 2>&1
-                apt-get purge -yq unbound unbound-host >/dev/null 2>&1
-                rm -rf /etc/unbound
-                success "Unbound полностью удален!"
-                sleep 1.5
-                ;;
-            0) break ;;
-            *) warn "Неверный ввод."; sleep 1 ;;
-        esac
-    done
-}
-
-# ==============================================================================
 # ПАНЕЛЬ ИНФОРМАЦИИ (ДАШБОРД)
 # ==============================================================================
 
@@ -355,11 +282,9 @@ show_info() {
     
     local status_docker=$(docker inspect -f '{{.State.Running}}' remnascrypt 2>/dev/null)
     local status_nginx=$(systemctl is-active nginx)
-    local status_unbound=$(systemctl is-active unbound 2>/dev/null || echo "inactive")
 
     local txt_docker=$([[ "$status_docker" == "true" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${RED}ОСТАНОВЛЕН${RESET}")
     local txt_nginx=$([[ "$status_nginx" == "active" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${RED}ОСТАНОВЛЕН${RESET}")
-    local txt_unbound=$([[ "$status_unbound" == "active" ]] && echo -e "${GREEN}РАБОТАЕТ${RESET}" || echo -e "${DIM}НЕ УСТАНОВЛЕН${RESET}")
 
     clear
     draw_banner
@@ -372,7 +297,6 @@ show_info() {
     echo -e " -----------------------------------"
     echo -e " 🐳 Docker:          $txt_docker"
     echo -e " 🌐 Nginx:           $txt_nginx"
-    echo -e " 🛡️  Unbound DNS:      $txt_unbound"
     echo -e ""
     
     read -n 1 -s -r -p "Нажмите любую клавишу для возврата в меню..."
@@ -396,8 +320,6 @@ install_process() {
     
     mkdir -p "$DIR" "$WEBROOT_DIR"
 
-    # Оптимизация сети убрана из автоматической установки (перенесена в меню)
-    
     info "Конфигурация временного веб-сервера для SSL проверки..."
     cat > "$NGINX_SITE" <<EOF
 server {
@@ -503,12 +425,11 @@ main_menu() {
         echo -e "  6)  🔑 Изменить SECRET_KEY"
         echo -e "  7)  🌐 Выбрать cap"
         echo -e "  8)  🚀 Оптимизация сети (BBR) $bbr_status"
-        echo -e "  9)  🛡️  Управление Unbound DNS"
-        echo -e "  10) 📥 Обновить скрипт"
-        echo -e "  11) ${RED}🗑️  Удалить ноду${RESET}"
+        echo -e "  9)  📥 Обновить скрипт"
+        echo -e "  10) ${RED}🗑️  Удалить ноду${RESET}"
         echo -e "  0)  🚪 Выход\n"
         
-        read -r -p " Выберите действие [0-11]: " act
+        read -r -p " Выберите действие [0-10]: " act
 
         case "$act" in
             1) show_info ;;
@@ -553,11 +474,10 @@ main_menu() {
                 ;;
             7) select_template ;;
             8) toggle_network_optim ;;
-            9) unbound_menu ;;
-            10) update_script ;;
-            11) uninstall_all ;;
+            9) update_script ;;
+            10) uninstall_all ;;
             0) clear; exit 0 ;;
-            *) warn "Неверный ввод, выберите пункт от 0 до 11."; sleep 1 ;;
+            *) warn "Неверный ввод, выберите пункт от 0 до 10."; sleep 1 ;;
         esac
     done
 }
